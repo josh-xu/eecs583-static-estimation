@@ -1,3 +1,8 @@
+# LLVM
+*.bc
+*.out
+*.ll
+
 # Benchmarks
 SPEC_CPU2006v1.1/
 
