@@ -1,7 +1,10 @@
 add_library(StaticEstimation MODULE
     # List your source files here.
-    StaticEstimation.cpp
+    lib/StaticEstimation.cpp
+    lib/FeatureExtractor.cpp
 )
+
+include_directories(include)
 
 # Use C++11 to compile our pass (i.e., supply -std=c++11).
 target_compile_features(StaticEstimation PRIVATE cxx_range_for cxx_auto_type)
