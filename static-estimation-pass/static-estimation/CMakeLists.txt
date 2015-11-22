@@ -2,6 +2,7 @@ add_library(StaticEstimation MODULE
     # List your source files here.
     lib/StaticEstimation.cpp
     lib/FeatureExtractor.cpp
+    lib/OpStatCounter.cpp
 )
 
 include_directories(include)

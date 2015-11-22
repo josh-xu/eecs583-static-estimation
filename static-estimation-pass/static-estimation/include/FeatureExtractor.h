@@ -11,6 +11,7 @@
 using namespace llvm;
 
 typedef std::map<std::string, float> featuremap;
+typedef std::pair<std::string, float> featurepair;
 
 class FeatureExtractor {
     featuremap features;
@@ -19,6 +20,10 @@ class FeatureExtractor {
     public:
         FeatureExtractor(std::set<Instruction*> pathInsts);
         void extractFeatures();
+        void countInstructionTypes();
+        void countHighLevelFeatures();
+        void countEqualities();
+
         featuremap getFeatures() {
             return features;
         }

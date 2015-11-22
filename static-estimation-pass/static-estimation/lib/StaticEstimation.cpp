@@ -1,6 +1,7 @@
 #include "llvm/Pass.h"
 #include "llvm/IR/Function.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/Format.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
@@ -25,7 +26,7 @@ namespace {
       features->extractFeatures();
       errs() << "I saw a function called " << F.getName() << "!\n";
       for (auto inst : features->getFeatures()) {
-        errs() << inst.first << " -> " << (int)(inst.second) << "\n";
+        errs() << inst.first << " -> " << format("%.3f", inst.second) << "\n";
       }
       return false;
     }
