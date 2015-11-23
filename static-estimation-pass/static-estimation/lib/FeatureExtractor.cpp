@@ -26,6 +26,24 @@ void FeatureExtractor::countInstructionTypes() {
     delete counter;
 }
 
+void FeatureExtractor::countTryCatch() {
+    int n_tries = 0;
+    int n_catches = 0;
+    for (auto inst : IRSet) {
+        std::string name = inst->getParent()->getName();
+        // Check for catch blocks
+        if (name.find("dispatch") == std::string::npos && name.find("catch") != std::string::npos) {
+            n_catches++;
+        }
+        // Look for try blocks, but DON'T look for entry
+        if (name.find("try") == 0) {
+            n_tries++;
+        }
+    }
+    features.insert(featurepair("n_tries", n_tries));
+    features.insert(featurepair("n_catches", n_catches));
+}
+
 void FeatureExtractor::countEqualities() {
     int n_equalities = 0;
     for (auto inst : IRSet) {
@@ -41,4 +59,5 @@ void FeatureExtractor::extractFeatures() {
     countHighLevelFeatures();
     countInstructionTypes();
     countEqualities();
+    countTryCatch();
 }

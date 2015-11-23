@@ -17,6 +17,8 @@ class OpStatCounter {
     long integerALU;
     long floatingALU;
     long memory;
+    long loads;
+    long stores;
     long other;
     long branch;
     long all;

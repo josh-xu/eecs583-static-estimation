@@ -20,6 +20,7 @@ class FeatureExtractor {
     public:
         FeatureExtractor(std::set<Instruction*> pathInsts);
         void extractFeatures();
+        void countTryCatch();
         void countInstructionTypes();
         void countHighLevelFeatures();
         void countEqualities();

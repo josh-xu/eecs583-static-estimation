@@ -9,6 +9,8 @@ OpStatCounter::OpStatCounter(std::set<Instruction*> pathInsts) {
     integerALU = 0;
     floatingALU = 0;
     memory = 0;
+    loads = 0;
+    stores = 0;
     other = 0;
     branch = 0;
     all = 0;
@@ -22,6 +24,8 @@ featuremap OpStatCounter::get_opstats() {
     // easier for when we run classification
     opstat_map.insert(featurepair("percent_intops", integerALU/float(all)));
     opstat_map.insert(featurepair("percent_floatops", floatingALU/float(all)));
+    opstat_map.insert(featurepair("percent_loads", loads/float(all)));
+    opstat_map.insert(featurepair("percent_stores", stores/float(all)));
     opstat_map.insert(featurepair("percent_memops", memory/float(all)));
     opstat_map.insert(featurepair("percent_branchops", branch/float(all)));
     opstat_map.insert(featurepair("percent_otherops", other/float(all)));
@@ -61,9 +65,17 @@ void OpStatCounter::run_counts() {
                 break;
 
             // Memory operation
-            case Instruction::Alloca :
             case Instruction::Load :
+                loads++;
+                memory++;
+                break;
+
             case Instruction::Store :
+                stores++;
+                memory++;
+                break;
+
+            case Instruction::Alloca :
             case Instruction::GetElementPtr :
             case Instruction::Fence :
             case Instruction::AtomicCmpXchg:
