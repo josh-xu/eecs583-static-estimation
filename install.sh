@@ -13,6 +13,7 @@ sudo apt-get update
 sudo apt-get install cmake -y
 
 git clone https://github.com/llvm-mirror/llvm.git
+git checkout release_33
 cd llvm
 mkdir build
 cd build
@@ -22,6 +23,7 @@ sudo cmake --build . --target install
 cd ~
 
 git clone https://github.com/llvm-mirror/clang.git
+git checkout release_33
 cd clang
 mkdir build
 cd build
