@@ -355,12 +355,12 @@ public:
 } // end anonymous namespace
 
 // Should we print the dot-graphs
-static cl::opt<bool> DotPathDag("path-profile-pathdag", cl::Hidden,
+static cl::opt<bool> DotPathDag("path-profile-pathdag-custom", cl::Hidden,
         cl::desc("Output the path profiling DAG for each function."));
 
 // Register the path profiler as a pass
 char PathProfiler::ID = 0;
-INITIALIZE_PASS(PathProfiler, "insert-path-profiling",
+INITIALIZE_PASS(PathProfiler, "insert-path-profiling-custom",
                 "Insert instrumentation for Ball-Larus path profiling",
                 false, false)
 
@@ -1267,6 +1267,7 @@ void PathProfiler::insertInstrumentation(
 // Entry point of the module
 void PathProfiler::runOnFunction(std::vector<Constant*> &ftInit,
                                  Function &F, Module &M) {
+  errs() << "RUNNING\n";
   // Build DAG from CFG
   BLInstrumentationDag dag = BLInstrumentationDag(F);
   dag.init();
