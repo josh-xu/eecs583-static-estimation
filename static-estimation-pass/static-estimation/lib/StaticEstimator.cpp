@@ -1,4 +1,4 @@
-//===- PathProfiling.cpp - Inserts counters for path profiling ------------===//
+//===- StaticEstimation.cpp - Inserts counters for path profiling ------------===//
 //
 //                      The LLVM Compiler Infrastructure
 //
@@ -43,7 +43,7 @@
 //  ACM Transactions on Programmmg Languages and Systems, Vol 16, No 5,
 //  September 1994, Pages 1399-1410.
 //===----------------------------------------------------------------------===//
-#define DEBUG_TYPE "insert-path-profiling"
+#define DEBUG_TYPE "insert-static-estimation"
 
 #include "llvm/Transforms/Instrumentation.h"
 #include "ProfilingUtils.h"
@@ -56,6 +56,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/TypeBuilder.h"
 #include "llvm/Pass.h"
+#include "llvm/PassManager.h"
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Compiler.h"
@@ -257,9 +258,9 @@ private:
 };
 
 // ---------------------------------------------------------------------------
-// PathProfiler is a module pass which instruments path profiling instructions
+// StaticEstimatorPass is a module pass which instruments path profiling instructions
 // ---------------------------------------------------------------------------
-class PathProfiler : public ModulePass {
+class StaticEstimatorPass : public ModulePass {
 private:
   // Current context for multi threading support.
   LLVMContext* Context;
@@ -344,12 +345,12 @@ private:
 
 public:
   static char ID; // Pass identification, replacement for typeid
-  PathProfiler() : ModulePass(ID) {
-    initializePathProfilerPass(*PassRegistry::getPassRegistry());
+  StaticEstimatorPass() : ModulePass(ID) {
+    //initializeStaticEstimatorPass(*PassRegistry::getPassRegistry());
   }
 
   virtual const char *getPassName() const {
-    return "Path Profiler";
+    return "Static Estimation";
   }
 };
 } // end anonymous namespace
@@ -358,19 +359,19 @@ public:
 static cl::opt<bool> DotPathDag("path-profile-pathdag-custom", cl::Hidden,
         cl::desc("Output the path profiling DAG for each function."));
 
-// Register the path profiler as a pass
-char PathProfiler::ID = 0;
-INITIALIZE_PASS(PathProfiler, "insert-path-profiling-custom",
+/*
+INITIALIZE_PASS(StaticEstimatorPass, "insert-path-profiling-custom",
                 "Insert instrumentation for Ball-Larus path profiling",
                 false, false)
 
-ModulePass *llvm::createPathProfilerPass() { return new PathProfiler(); }
+ModulePass *llvm::createStaticEstimatorPass() { return new StaticEstimatorPass(); }
+*/
 
 namespace llvm {
-  class PathProfilingFunctionTable {};
+  class StaticEstimationFunctionTable {};
 
   // Type for global array storing references to hashes or arrays
-  template<bool xcompile> class TypeBuilder<PathProfilingFunctionTable,
+  template<bool xcompile> class TypeBuilder<StaticEstimationFunctionTable,
                                             xcompile> {
   public:
     static StructType *get(LLVMContext& C) {
@@ -382,7 +383,7 @@ namespace llvm {
     }
   };
 
-  typedef TypeBuilder<PathProfilingFunctionTable, true>
+  typedef TypeBuilder<StaticEstimationFunctionTable, true>
   ftEntryTypeBuilder;
 
   // BallLarusEdge << operator overloading
@@ -891,21 +892,21 @@ int BLInstrumentationDag::calculateChordIncrementsDir(BallLarusEdge* e,
 }
 
 // Creates an increment constant representing incr.
-ConstantInt* PathProfiler::createIncrementConstant(long incr,
+ConstantInt* StaticEstimatorPass::createIncrementConstant(long incr,
                                                    int bitsize) {
   return(ConstantInt::get(IntegerType::get(*Context, 32), incr));
 }
 
 // Creates an increment constant representing the value in
 // edge->getIncrement().
-ConstantInt* PathProfiler::createIncrementConstant(
+ConstantInt* StaticEstimatorPass::createIncrementConstant(
   BLInstrumentationEdge* edge) {
   return(createIncrementConstant(edge->getIncrement(), 32));
 }
 
 // Finds the insertion point after pathNumber in block.  PathNumber may
 // be NULL.
-BasicBlock::iterator PathProfiler::getInsertionPoint(BasicBlock* block, Value*
+BasicBlock::iterator StaticEstimatorPass::getInsertionPoint(BasicBlock* block, Value*
                                                      pathNumber) {
   if(pathNumber == NULL || isa<ConstantInt>(pathNumber)
      || (((Instruction*)(pathNumber))->getParent()) != block) {
@@ -928,7 +929,7 @@ BasicBlock::iterator PathProfiler::getInsertionPoint(BasicBlock* block, Value*
 }
 
 // A PHINode is created in the node, and its values initialized to -1U.
-void PathProfiler::preparePHI(BLInstrumentationNode* node) {
+void StaticEstimatorPass::preparePHI(BLInstrumentationNode* node) {
   BasicBlock* block = node->getBlock();
   BasicBlock::iterator insertPoint = block->getFirstInsertionPt();
   pred_iterator PB = pred_begin(node->getBlock()),
@@ -951,7 +952,7 @@ void PathProfiler::preparePHI(BLInstrumentationNode* node) {
 // Inserts source's pathNumber Value* into target.  Target may or may not
 // have multiple predecessors, and may or may not have its phiNode
 // initalized.
-void PathProfiler::pushValueIntoNode(BLInstrumentationNode* source,
+void StaticEstimatorPass::pushValueIntoNode(BLInstrumentationNode* source,
                                      BLInstrumentationNode* target) {
   if(target->getBlock() == NULL)
     return;
@@ -979,7 +980,7 @@ void PathProfiler::pushValueIntoNode(BLInstrumentationNode* source,
 
 // Inserts source's pathNumber Value* into the appropriate slot of
 // target's phiNode.
-void PathProfiler::pushValueIntoPHI(BLInstrumentationNode* target,
+void StaticEstimatorPass::pushValueIntoPHI(BLInstrumentationNode* target,
                                     BLInstrumentationNode* source) {
   PHINode* phi = target->getPathPHI();
   assert(phi != NULL && "  Tried to push value into node with PHI, but node"
@@ -990,7 +991,7 @@ void PathProfiler::pushValueIntoPHI(BLInstrumentationNode* target,
 
 // The Value* in node, oldVal,  is updated with a Value* correspodning to
 // oldVal + addition.
-void PathProfiler::insertNumberIncrement(BLInstrumentationNode* node,
+void StaticEstimatorPass::insertNumberIncrement(BLInstrumentationNode* node,
                                          Value* addition, bool atBeginning) {
   BasicBlock* block = node->getBlock();
   assert(node->getStartingPathNumber() != NULL);
@@ -1017,7 +1018,7 @@ void PathProfiler::insertNumberIncrement(BLInstrumentationNode* node,
 // Creates a counter increment in the given node.  The Value* in node is
 // taken as the index into an array or hash table.  The hash table access
 // is a call to the runtime.
-void PathProfiler::insertCounterIncrement(Value* incValue,
+void StaticEstimatorPass::insertCounterIncrement(Value* incValue,
                                           BasicBlock::iterator insertPoint,
                                           BLInstrumentationDag* dag,
                                           bool increment) {
@@ -1075,7 +1076,7 @@ void PathProfiler::insertCounterIncrement(Value* incValue,
 // execution.
 //
 // FIXME: This should be reworked so it's not recursive.
-void PathProfiler::insertInstrumentationStartingAt(BLInstrumentationEdge* edge,
+void StaticEstimatorPass::insertInstrumentationStartingAt(BLInstrumentationEdge* edge,
                                                    BLInstrumentationDag* dag) {
   // Mark the edge as instrumented
   edge->setHasInstrumentation(true);
@@ -1218,7 +1219,7 @@ void PathProfiler::insertInstrumentationStartingAt(BLInstrumentationEdge* edge,
 // present.
 //
 // Counter storage is created here.
-void PathProfiler::insertInstrumentation(
+void StaticEstimatorPass::insertInstrumentation(
   BLInstrumentationDag& dag, Module &M) {
 
   BLInstrumentationEdge* exitRootEdge =
@@ -1265,7 +1266,7 @@ void PathProfiler::insertInstrumentation(
 }
 
 // Entry point of the module
-void PathProfiler::runOnFunction(std::vector<Constant*> &ftInit,
+void StaticEstimatorPass::runOnFunction(std::vector<Constant*> &ftInit,
                                  Function &F, Module &M) {
   errs() << "RUNNING\n";
   // Build DAG from CFG
@@ -1326,7 +1327,8 @@ void PathProfiler::runOnFunction(std::vector<Constant*> &ftInit,
   "\n\n============= MODULE BEGIN ===============\n" << M << \
   "\n============== MODULE END ================\n"
 
-bool PathProfiler::runOnModule(Module &M) {
+bool StaticEstimatorPass::runOnModule(Module &M) {
+  errs() << "Running research module\n";
   Context = &M.getContext();
 
   DEBUG(dbgs()
@@ -1392,7 +1394,7 @@ bool PathProfiler::runOnModule(Module &M) {
   InsertProfilingInitCall(Main, "llvm_start_path_profiling", functionTable,
                           PointerType::getUnqual(eltType));
 
-  DEBUG(PRINT_MODULE);
+  //DEBUG(PRINT_MODULE);
 
   return true;
 }
@@ -1400,7 +1402,7 @@ bool PathProfiler::runOnModule(Module &M) {
 // If this edge is a critical edge, then inserts a node at this edge.
 // This edge becomes the first edge, and a new BallLarusEdge is created.
 // Returns true if the edge was split
-bool PathProfiler::splitCritical(BLInstrumentationEdge* edge,
+bool StaticEstimatorPass::splitCritical(BLInstrumentationEdge* edge,
                                  BLInstrumentationDag* dag) {
   unsigned succNum = edge->getSuccessorNumber();
   BallLarusNode* sourceNode = edge->getSource();
@@ -1423,3 +1425,7 @@ bool PathProfiler::splitCritical(BLInstrumentationEdge* edge,
   } else
     return(false);
 }
+
+// Register the path profiler as a pass
+char StaticEstimatorPass::ID = 0;
+static RegisterPass<StaticEstimatorPass> X("StaticEstimatorPass", "insert-static-estimation", false, false);
