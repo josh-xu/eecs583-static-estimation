@@ -1268,13 +1268,15 @@ void StaticEstimatorPass::insertInstrumentation(
 // Entry point of the module
 void StaticEstimatorPass::runOnFunction(std::vector<Constant*> &ftInit,
                                  Function &F, Module &M) {
-  errs() << "RUNNING\n";
+  errs() << "Running on function " << F.getName() << "\n";
   // Build DAG from CFG
   BLInstrumentationDag dag = BLInstrumentationDag(F);
   dag.init();
 
   // give each path a unique integer value
   dag.calculatePathNumbers();
+
+  errs() << "Root is " << dag.getRoot() << "\n";
 
   // modify path increments to increase the efficiency
   // of instrumentation

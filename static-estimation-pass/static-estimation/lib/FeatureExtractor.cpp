@@ -26,6 +26,24 @@ void FeatureExtractor::countInstructionTypes() {
     delete counter;
 }
 
+void FeatureExtractor::countLocalGlobalVars() {
+    int n_locals = 0;
+    int n_globals = 0;
+    for (auto inst: IRSet) {
+        if (isa<LoadInst>(inst)) {
+            Value* operand = inst->getOperand(0);
+            if (isa<GlobalVariable>(operand)) {
+                n_globals++;
+            }
+            else {
+                n_locals++;
+            }
+        }
+    }
+    features.insert(featurepair("n_globals", n_globals));
+    features.insert(featurepair("n_locals", n_locals));
+}
+
 void FeatureExtractor::countTryCatch() {
     int n_tries = 0;
     int n_catches = 0;
@@ -60,4 +78,5 @@ void FeatureExtractor::extractFeatures() {
     countInstructionTypes();
     countEqualities();
     countTryCatch();
+    countLocalGlobalVars();
 }

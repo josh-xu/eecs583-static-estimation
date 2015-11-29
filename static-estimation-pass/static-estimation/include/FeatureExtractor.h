@@ -24,6 +24,7 @@ class FeatureExtractor {
         void countInstructionTypes();
         void countHighLevelFeatures();
         void countEqualities();
+        void countLocalGlobalVars();
 
         featuremap getFeatures() {
             return features;
