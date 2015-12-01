@@ -277,6 +277,12 @@ private:
   // with code to save the profile to disk.
   bool runOnModule(Module &M);
 
+  // Compute the path through the DAG from its path number
+  std::vector<BasicBlock*> computePath(BLInstrumentationDag* dag, unsigned pathNo);
+
+  // Calculates all paths for a dag
+  void calculatePaths(BLInstrumentationDag* dag);
+
   // Analyzes the function for Ball-Larus path profiling, and inserts code.
   void runOnFunction(std::vector<Constant*> &ftInit, Function &F, Module &M);
 
@@ -1265,6 +1271,50 @@ void StaticEstimatorPass::insertInstrumentation(
   }
 }
 
+// Compute the path through the DAG from its path number
+std::vector<BasicBlock*> StaticEstimatorPass::computePath(BLInstrumentationDag* dag, unsigned pathNo) {
+    unsigned R = pathNo;
+    std::vector<BasicBlock*> path;
+
+    BLInstrumentationNode* curNode = (BLInstrumentationNode*)(dag->getRoot());
+    while (1) {
+        BLInstrumentationEdge* nextEdge;
+        unsigned bestEdge = 0;
+        // Add the basic block to the list
+        path.push_back(curNode->getBlock());
+        for (BLEdgeIterator next = curNode->succBegin(), end = curNode->succEnd(); next != end; next++) {
+            // We want the largest edge that's less than R
+            BLInstrumentationEdge* i = (BLInstrumentationEdge*) *next;
+            unsigned weight = i->getWeight();
+            if (weight <= R && weight >= bestEdge) {
+                bestEdge = weight;
+                nextEdge = i;
+            }
+        }
+        BLInstrumentationNode* nextNode = (BLInstrumentationNode*)(nextEdge->getTarget());
+        // Terminate on the <null> 
+        if (!nextNode->getBlock())
+            break;
+        // Move to next node
+        curNode = nextNode;
+        R -= bestEdge;
+    }
+    return path;
+}
+
+// Iterate through all possible paths in the dag
+void StaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
+  unsigned nPaths = dag->getNumberOfPaths();
+  errs() << "There are " << nPaths << " paths\n";
+  // Enumerate all paths in this function
+  for (int i=0; i<nPaths; i++) {
+      std::vector<BasicBlock*> path = computePath(dag, i);
+      errs() << "PATH NO " << i << "\n";
+      for (auto p : path)
+          errs() << p->getName() << "\n";
+  }
+}
+
 // Entry point of the module
 void StaticEstimatorPass::runOnFunction(std::vector<Constant*> &ftInit,
                                  Function &F, Module &M) {
@@ -1275,8 +1325,8 @@ void StaticEstimatorPass::runOnFunction(std::vector<Constant*> &ftInit,
 
   // give each path a unique integer value
   dag.calculatePathNumbers();
-
-  errs() << "Root is " << dag.getRoot() << "\n";
+  
+  calculatePaths(&dag);
 
   // modify path increments to increase the efficiency
   // of instrumentation
@@ -1287,8 +1337,8 @@ void StaticEstimatorPass::runOnFunction(std::vector<Constant*> &ftInit,
   dag.unlinkPhony();
 
   // potentially generate .dot graph for the dag
-  if (DotPathDag)
-    dag.generateDotGraph ();
+  //if (DotPathDag)
+  dag.generateDotGraph();
 
   // Should we store the information in an array or hash
   if( dag.getNumberOfPaths() <= HASH_THRESHHOLD ) {

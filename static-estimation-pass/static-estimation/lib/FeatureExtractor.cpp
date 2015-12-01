@@ -73,10 +73,24 @@ void FeatureExtractor::countEqualities() {
     features.insert(featurepair("n_equalities", n_equalities));
 }
 
+void FeatureExtractor::countCallInfo() {
+    int n_function_calls = 0;
+    int n_params = 0;
+    for (auto inst : IRSet) {
+        if (CallInst *callInst = dyn_cast<CallInst>(inst)) {
+            n_function_calls++;
+            n_params += callInst->getNumArgOperands();
+        }
+    }
+    features.insert(featurepair("n_function_calls", n_function_calls));
+    features.insert(featurepair("n_avg_args_per_call", n_params/float(n_function_calls)));
+}
+
 void FeatureExtractor::extractFeatures() {
     countHighLevelFeatures();
     countInstructionTypes();
     countEqualities();
     countTryCatch();
     countLocalGlobalVars();
+    countCallInfo();
 }
