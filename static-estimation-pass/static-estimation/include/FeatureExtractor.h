@@ -32,6 +32,7 @@ class FeatureExtractor {
         void countCallInfo();
 
         std::string getFeaturesCSV();
+        std::string getFeaturesCSVNames();
 
         featuremap getFeatures() {
             return features;

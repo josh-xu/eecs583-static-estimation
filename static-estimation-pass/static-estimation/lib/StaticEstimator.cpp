@@ -1410,6 +1410,13 @@ bool StaticEstimatorPass::runOnModule(Module &M) {
   // No main, no instrumentation!
   Function *Main = M.getFunction("main");
 
+  // Run some dummy feature extraction to get the col names
+  std::vector<BasicBlock*> tempPath;
+  tempPath.push_back(&Main->getEntryBlock());
+  FeatureExtractor* features = new FeatureExtractor(tempPath);
+  features->extractFeatures();
+  ofs << "ID," << features->getFeaturesCSVNames();
+
   // Using fortran? ... this kind of works
   if (!Main)
     Main = M.getFunction("MAIN__");

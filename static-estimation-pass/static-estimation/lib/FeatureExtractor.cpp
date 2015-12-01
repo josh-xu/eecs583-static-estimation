@@ -26,6 +26,17 @@ void FeatureExtractor::countHighLevelFeatures() {
     features.insert(featurepair("total_instructions", InstPath.size()));
 }
 
+std::string FeatureExtractor::getFeaturesCSVNames() {
+    std::ostringstream csvLine;
+    std::string sep = "";
+    for (auto i = features.begin(), e = features.end(); i != e; ++i) {
+        csvLine << sep << i->first;
+        sep = ",";
+    }
+    csvLine << "\n";
+    return csvLine.str();
+}
+
 std::string FeatureExtractor::getFeaturesCSV() {
     std::ostringstream csvLine;
     std::string sep = "";
