@@ -4,7 +4,7 @@
 #include "llvm/Support/Format.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 
-#include <set>
+#include <vector>
 
 #include "FeatureExtractor.h"
 
@@ -16,13 +16,11 @@ namespace {
     FeatureExtractorHarnessPass() : FunctionPass(ID) {}
 
     virtual bool runOnFunction(Function &F) {
-      std::set<Instruction*> IRList;
+      std::vector<BasicBlock*> BBVector;
       for (auto b = F.begin(); b != F.end(); b++) {
-        for (auto I = b->begin(); I != b->end(); I++) {
-          IRList.insert(&*I);
-        }
+          BBVector.push_back(&*b);
       }
-      FeatureExtractor* features = new FeatureExtractor(IRList);
+      FeatureExtractor* features = new FeatureExtractor(BBVector);
       features->extractFeatures();
       errs() << "I saw a function called " << F.getName() << "!\n";
       for (auto inst : features->getFeatures()) {

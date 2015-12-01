@@ -2,7 +2,7 @@
 
 #include "OpStatCounter.h"
 
-OpStatCounter::OpStatCounter(std::set<Instruction*> pathInsts) {
+OpStatCounter::OpStatCounter(std::vector<Instruction*> pathInsts) {
     IRSet = pathInsts;
 
     // Various counters

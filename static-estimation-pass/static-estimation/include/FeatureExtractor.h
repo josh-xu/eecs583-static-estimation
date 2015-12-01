@@ -4,7 +4,7 @@
 #include "llvm/Pass.h"
 #include "llvm/IR/Function.h"
 
-#include <set>
+#include <vector>
 #include <map>
 #include <string>
 
@@ -15,10 +15,14 @@ typedef std::pair<std::string, float> featurepair;
 
 class FeatureExtractor {
     featuremap features;
-    std::set<Instruction*> IRSet;
+    // We'll keep both the instruction list and BB path in memory
+    // in an attempt to not throw away information. IRSet gets built
+    // during object construction and won't change, however
+    std::vector<Instruction*> InstPath;
+    std::vector<BasicBlock*> BBPath;
     
     public:
-        FeatureExtractor(std::set<Instruction*> pathInsts);
+        FeatureExtractor(std::vector<BasicBlock*> path);
         void extractFeatures();
         void countTryCatch();
         void countInstructionTypes();
@@ -26,6 +30,8 @@ class FeatureExtractor {
         void countEqualities();
         void countLocalGlobalVars();
         void countCallInfo();
+
+        std::string getFeaturesCSV();
 
         featuremap getFeatures() {
             return features;

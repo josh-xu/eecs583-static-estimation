@@ -3,23 +3,40 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Type.h"
 
+#include <vector>
 #include <utility>
 #include <string>
+#include <sstream>
+#include <iomanip>
 
 #include "FeatureExtractor.h"
 #include "OpStatCounter.h"
 
-FeatureExtractor::FeatureExtractor(std::set<Instruction*> pathInsts) {
-    IRSet = pathInsts;
+FeatureExtractor::FeatureExtractor(std::vector<BasicBlock*> path) {
+    BBPath = path;
+    for (auto bb : path) {
+        for (BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; ++i) {
+            InstPath.push_back(&*i);
+        }
+    }
     return;
 }
 
 void FeatureExtractor::countHighLevelFeatures() {
-    features.insert(featurepair("total_instructions", IRSet.size()));
+    features.insert(featurepair("total_instructions", InstPath.size()));
+}
+
+std::string FeatureExtractor::getFeaturesCSV() {
+    std::ostringstream csvLine;
+    for (auto f : features) {
+        csvLine << std::setw(4) << f.second;
+    }
+    csvLine << "\n";
+    return csvLine.str();
 }
 
 void FeatureExtractor::countInstructionTypes() {
-    OpStatCounter* counter = new OpStatCounter(IRSet);
+    OpStatCounter* counter = new OpStatCounter(InstPath);
     featuremap opmap = counter->get_opstats();
     // Merge maps
     features.insert(opmap.begin(), opmap.end());
@@ -29,7 +46,7 @@ void FeatureExtractor::countInstructionTypes() {
 void FeatureExtractor::countLocalGlobalVars() {
     int n_locals = 0;
     int n_globals = 0;
-    for (auto inst: IRSet) {
+    for (auto inst: InstPath) {
         if (isa<LoadInst>(inst)) {
             Value* operand = inst->getOperand(0);
             if (isa<GlobalVariable>(operand)) {
@@ -47,7 +64,7 @@ void FeatureExtractor::countLocalGlobalVars() {
 void FeatureExtractor::countTryCatch() {
     int n_tries = 0;
     int n_catches = 0;
-    for (auto inst : IRSet) {
+    for (auto inst : InstPath) {
         std::string name = inst->getParent()->getName();
         // Check for catch blocks
         if (name.find("dispatch") == std::string::npos && name.find("catch") != std::string::npos) {
@@ -64,7 +81,7 @@ void FeatureExtractor::countTryCatch() {
 
 void FeatureExtractor::countEqualities() {
     int n_equalities = 0;
-    for (auto inst : IRSet) {
+    for (auto inst : InstPath) {
         if (ICmpInst* icmp = dyn_cast<ICmpInst>(inst)) {
             if (icmp->isEquality())
                 n_equalities++;
@@ -76,7 +93,7 @@ void FeatureExtractor::countEqualities() {
 void FeatureExtractor::countCallInfo() {
     int n_function_calls = 0;
     int n_params = 0;
-    for (auto inst : IRSet) {
+    for (auto inst : InstPath) {
         if (CallInst *callInst = dyn_cast<CallInst>(inst)) {
             n_function_calls++;
             n_params += callInst->getNumArgOperands();

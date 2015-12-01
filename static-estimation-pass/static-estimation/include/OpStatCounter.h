@@ -6,13 +6,13 @@
 
 #include "FeatureExtractor.h"
 
-#include <set>
+#include <vector>
 
 using namespace llvm;
 
 class OpStatCounter {
     featuremap opstats;
-    std::set<Instruction*> IRSet;
+    std::vector<Instruction*> IRSet;
 
     long integerALU;
     long floatingALU;
@@ -26,7 +26,7 @@ class OpStatCounter {
     void run_counts();
 
     public:
-        OpStatCounter(std::set<Instruction*> pathInsts);
+        OpStatCounter(std::vector<Instruction*> pathInsts);
         featuremap get_opstats();
 };
 

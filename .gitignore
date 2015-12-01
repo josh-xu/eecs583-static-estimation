@@ -2,6 +2,7 @@
 *.bc
 *.out
 *.ll
+*.dot
 
 # Benchmarks
 SPEC_CPU2006v1.1/
