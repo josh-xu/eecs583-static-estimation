@@ -3,6 +3,7 @@
 *.out
 *.ll
 *.dot
+*.csv
 
 # Benchmarks
 SPEC_CPU2006v1.1/

@@ -63,7 +63,11 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
+
+#include <fstream>
 #include <vector>
+
+#include "FeatureExtractor.h"
 
 #define HASH_THRESHHOLD 100000
 
@@ -262,6 +266,9 @@ private:
 // ---------------------------------------------------------------------------
 class StaticEstimatorPass : public ModulePass {
 private:
+  // File for output
+  std::ofstream ofs;
+
   // Current context for multi threading support.
   LLVMContext* Context;
 
@@ -1305,13 +1312,16 @@ std::vector<BasicBlock*> StaticEstimatorPass::computePath(BLInstrumentationDag* 
 // Iterate through all possible paths in the dag
 void StaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
   unsigned nPaths = dag->getNumberOfPaths();
+  std::string fnName = dag->getRoot()->getBlock()->getParent()->getName();
   errs() << "There are " << nPaths << " paths\n";
   // Enumerate all paths in this function
   for (int i=0; i<nPaths; i++) {
       std::vector<BasicBlock*> path = computePath(dag, i);
-      errs() << "PATH NO " << i << "\n";
-      for (auto p : path)
-          errs() << p->getName() << "\n";
+     
+      // Extract features 
+      FeatureExtractor* features = new FeatureExtractor(path);
+      features->extractFeatures();
+      ofs << fnName << "." << i << "," << features->getFeaturesCSV();
   }
 }
 
@@ -1383,6 +1393,11 @@ bool StaticEstimatorPass::runOnModule(Module &M) {
   errs() << "Running research module\n";
   Context = &M.getContext();
 
+  // Start outputs
+  std::string fname = "feature_output.csv";
+  errs() << "Writing to " << fname << "\n";
+  ofs.open(fname, std::ofstream::out);
+
   DEBUG(dbgs()
         << "****************************************\n"
         << "****************************************\n"
@@ -1446,6 +1461,7 @@ bool StaticEstimatorPass::runOnModule(Module &M) {
   InsertProfilingInitCall(Main, "llvm_start_path_profiling", functionTable,
                           PointerType::getUnqual(eltType));
 
+  ofs.close();
   //DEBUG(PRINT_MODULE);
 
   return true;

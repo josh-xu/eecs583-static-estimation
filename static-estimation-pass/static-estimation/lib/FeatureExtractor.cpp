@@ -102,7 +102,13 @@ void FeatureExtractor::countCallInfo() {
         }
     }
     features.insert(featurepair("n_function_calls", n_function_calls));
-    features.insert(featurepair("n_avg_args_per_call", n_params/float(n_function_calls)));
+ 
+    float avg_args;
+    if (n_function_calls > 0)
+        avg_args = n_params/float(n_function_calls);
+    else
+        avg_args = 0;
+    features.insert(featurepair("n_avg_args_per_call", avg_args));
 }
 
 void FeatureExtractor::extractFeatures() {
