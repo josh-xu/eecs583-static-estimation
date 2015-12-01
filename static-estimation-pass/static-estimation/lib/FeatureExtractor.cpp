@@ -28,8 +28,10 @@ void FeatureExtractor::countHighLevelFeatures() {
 
 std::string FeatureExtractor::getFeaturesCSV() {
     std::ostringstream csvLine;
-    for (auto f : features) {
-        csvLine << std::setw(4) << f.second;
+    std::string sep = "";
+    for (auto i = features.begin(), e = features.end(); i != e; ++i) {
+        csvLine << sep << std::setw(4) << i->second;
+        sep = ",";
     }
     csvLine << "\n";
     return csvLine.str();

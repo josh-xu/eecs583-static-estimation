@@ -26,6 +26,7 @@ namespace {
       for (auto inst : features->getFeatures()) {
         errs() << inst.first << " -> " << format("%.3f", inst.second) << "\n";
       }
+      errs() << features->getFeaturesCSV();
       return false;
     }
   };
