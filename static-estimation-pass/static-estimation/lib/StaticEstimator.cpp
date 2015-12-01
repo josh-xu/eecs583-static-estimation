@@ -48,6 +48,7 @@
 #include "llvm/Transforms/Instrumentation.h"
 #include "ProfilingUtils.h"
 #include "llvm/Analysis/PathNumbering.h"
+#include "llvm/Analysis/PathProfileInfo.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/InstrTypes.h"
@@ -266,6 +267,9 @@ private:
 // ---------------------------------------------------------------------------
 class StaticEstimatorPass : public ModulePass {
 private:
+  // Profiling
+  PathProfileInfo* PI;
+
   // File for output
   std::ofstream ofs;
 
@@ -292,6 +296,9 @@ private:
 
   // Analyzes the function for Ball-Larus path profiling, and inserts code.
   void runOnFunction(std::vector<Constant*> &ftInit, Function &F, Module &M);
+
+  // To use profiling info
+  void getAnalysisUsage(AnalysisUsage &AU) const;
 
   // Creates an increment constant representing incr.
   ConstantInt* createIncrementConstant(long incr, int bitsize);
@@ -1312,16 +1319,25 @@ std::vector<BasicBlock*> StaticEstimatorPass::computePath(BLInstrumentationDag* 
 // Iterate through all possible paths in the dag
 void StaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
   unsigned nPaths = dag->getNumberOfPaths();
-  std::string fnName = dag->getRoot()->getBlock()->getParent()->getName();
+  Function* fn = dag->getRoot()->getBlock()->getParent();
   errs() << "There are " << nPaths << " paths\n";
   // Enumerate all paths in this function
   for (int i=0; i<nPaths; i++) {
       std::vector<BasicBlock*> path = computePath(dag, i);
      
+      PI->setCurrentFunction(fn);
+
+      ProfilePath* curPath = PI->getPath(i);
+      unsigned n_real_count = 0;
+      if (curPath) {
+          n_real_count = curPath->getCount();
+      }
+
       // Extract features 
       FeatureExtractor* features = new FeatureExtractor(path);
       features->extractFeatures();
-      ofs << fnName << "." << i << "," << features->getFeaturesCSV();
+      std::string fnName = fn->getName();
+      ofs << fnName << "." << i << ", " << n_real_count << "," << features->getFeaturesCSV();
   }
 }
 
@@ -1329,13 +1345,15 @@ void StaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
 void StaticEstimatorPass::runOnFunction(std::vector<Constant*> &ftInit,
                                  Function &F, Module &M) {
   errs() << "Running on function " << F.getName() << "\n";
+
   // Build DAG from CFG
   BLInstrumentationDag dag = BLInstrumentationDag(F);
   dag.init();
 
   // give each path a unique integer value
   dag.calculatePathNumbers();
-  
+ 
+  // Calculate the features for each path 
   calculatePaths(&dag);
 
   // modify path increments to increase the efficiency
@@ -1393,6 +1411,8 @@ bool StaticEstimatorPass::runOnModule(Module &M) {
   errs() << "Running research module\n";
   Context = &M.getContext();
 
+  PI = &getAnalysis<PathProfileInfo>();
+
   // Start outputs
   std::string fname = "feature_output.csv";
   errs() << "Writing to " << fname << "\n";
@@ -1415,7 +1435,7 @@ bool StaticEstimatorPass::runOnModule(Module &M) {
   tempPath.push_back(&Main->getEntryBlock());
   FeatureExtractor* features = new FeatureExtractor(tempPath);
   features->extractFeatures();
-  ofs << "ID," << features->getFeaturesCSVNames();
+  ofs << "ID,RealCount," << features->getFeaturesCSVNames();
 
   // Using fortran? ... this kind of works
   if (!Main)
@@ -1499,6 +1519,10 @@ bool StaticEstimatorPass::splitCritical(BLInstrumentationEdge* edge,
     return(true);
   } else
     return(false);
+}
+
+void StaticEstimatorPass::getAnalysisUsage(AnalysisUsage &AU) const {
+    AU.addRequired<PathProfileInfo>();
 }
 
 // Register the path profiler as a pass

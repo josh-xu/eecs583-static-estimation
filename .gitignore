@@ -1,6 +1,8 @@
 # LLVM
 *.bc
 *.out
+*.s
+*.profile
 *.ll
 *.dot
 *.csv
