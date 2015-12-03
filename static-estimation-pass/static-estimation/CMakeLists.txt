@@ -3,6 +3,7 @@ add_library(StaticEstimator MODULE
     lib/StaticEstimator.cpp
     lib/FeatureExtractor.cpp
     lib/OpStatCounter.cpp
+    lib/BLInstrumentation.cpp
 )
 
 add_library(FeatureExtractorHarness MODULE
@@ -10,6 +11,7 @@ add_library(FeatureExtractorHarness MODULE
     lib/FeatureExtractorHarness.cpp
     lib/FeatureExtractor.cpp
     lib/OpStatCounter.cpp
+    lib/BLInstrumentation.cpp
 )
 
 include_directories(include)

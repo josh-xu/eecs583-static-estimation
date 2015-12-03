@@ -77,8 +77,8 @@ void FeatureExtractor::countLocalGlobalVars() {
 void FeatureExtractor::countTryCatch() {
     int n_tries = 0;
     int n_catches = 0;
-    for (auto inst : InstPath) {
-        std::string name = inst->getParent()->getName();
+    for (auto bb : BBPath) {
+        std::string name = bb->getName();
         // Check for catch blocks
         if (name.find("dispatch") == std::string::npos && name.find("catch") != std::string::npos) {
             n_catches++;
