@@ -1323,6 +1323,10 @@ void StaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
   errs() << "There are " << nPaths << " paths\n";
   // Enumerate all paths in this function
   for (int i=0; i<nPaths; i++) {
+      // Show progress for large values
+      if (i % 10000 == 0)
+          errs() << "Computed for " << i << " paths\n";
+
       std::vector<BasicBlock*> path = computePath(dag, i);
      
       PI->setCurrentFunction(fn);
@@ -1338,6 +1342,7 @@ void StaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
       features->extractFeatures();
       std::string fnName = fn->getName();
       ofs << fnName << "." << i << ", " << n_real_count << "," << features->getFeaturesCSV();
+      delete features;
   }
 }
 

@@ -27,6 +27,7 @@ namespace {
         errs() << inst.first << " -> " << format("%.3f", inst.second) << "\n";
       }
       errs() << features->getFeaturesCSV();
+      delete features;
       return false;
     }
   };

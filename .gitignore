@@ -8,7 +8,7 @@
 *.csv
 
 # Benchmarks
-SPEC_CPU2006v1.1/
+SPEC*
 
 # Vagrant
 .vagrant/
