@@ -39,7 +39,7 @@ private:
   bool runOnModule(Module &M);
 
   // Calculates all paths for a dag
-  void calculatePaths(BLInstrumentationDag* dag);
+  void calculatePaths(Function* fn);
 
   // Analyzes the function for Ball-Larus path profiling, and inserts code.
   void runOnFunction(std::vector<Constant*> &ftInit, Function &F, Module &M);
@@ -60,19 +60,18 @@ public:
 };
 
 // Iterate through all possible paths in the dag
-void StaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
-  unsigned nPaths = dag->getNumberOfPaths();
+void StaticEstimatorPass::calculatePaths(Function* fn) {
   std::vector<BasicBlock*> path;
 
-  Function* fn = dag->getRoot()->getBlock()->getParent();
+  PI->setCurrentFunction(fn);
+  unsigned nPaths = PI->getPotentialPathCount();
   errs() << "There are " << nPaths << " paths\n";
   // Enumerate all paths in this function
   for (int i=0; i<nPaths; i++) {
       // Show progress for large values
       if (i % 10000 == 0)
-          errs() << "Computed for " << i << " paths\n";
+          errs() << "Computed for " << i << "/" << nPaths << " paths\n";
 
-      PI->setCurrentFunction(fn);
       ProfilePath* curPath = PI->getPath(i);
       unsigned n_real_count = 0;
       if (curPath) {
@@ -94,15 +93,8 @@ void StaticEstimatorPass::runOnFunction(std::vector<Constant*> &ftInit,
                                  Function &F, Module &M) {
   errs() << "Running on function " << F.getName() << "\n";
 
-  // Build DAG from CFG
-  BLInstrumentationDag dag = BLInstrumentationDag(F);
-  dag.init();
-
-  // give each path a unique integer value
-  dag.calculatePathNumbers();
- 
   // Calculate the features for each path 
-  calculatePaths(&dag);
+  calculatePaths(&F);
 }
 
 bool StaticEstimatorPass::runOnModule(Module &M) {
