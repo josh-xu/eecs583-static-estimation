@@ -26,6 +26,7 @@ class OpStatCounter {
     void run_counts();
 
     public:
+        float get_percentage(int val);
         OpStatCounter(std::vector<Instruction*> pathInsts);
         featuremap get_opstats();
 };

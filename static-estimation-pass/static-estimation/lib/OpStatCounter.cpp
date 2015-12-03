@@ -16,19 +16,26 @@ OpStatCounter::OpStatCounter(std::vector<Instruction*> pathInsts) {
     all = 0;
 }
 
+float OpStatCounter::get_percentage(int val) {
+    if (all == 0)
+        return 0;
+
+    return val/float(all);
+}
+
 featuremap OpStatCounter::get_opstats() {
     featuremap opstat_map;
     // Generate totals for insts
     run_counts();
     // Calculate percentages. We're doing this to try and normalize features and thus make life
     // easier for when we run classification
-    opstat_map.insert(featurepair("percent_intops", integerALU/float(all)));
-    opstat_map.insert(featurepair("percent_floatops", floatingALU/float(all)));
-    opstat_map.insert(featurepair("percent_loads", loads/float(all)));
-    opstat_map.insert(featurepair("percent_stores", stores/float(all)));
-    opstat_map.insert(featurepair("percent_memops", memory/float(all)));
-    opstat_map.insert(featurepair("percent_branchops", branch/float(all)));
-    opstat_map.insert(featurepair("percent_otherops", other/float(all)));
+    opstat_map.insert(featurepair("percent_intops", get_percentage(integerALU)));
+    opstat_map.insert(featurepair("percent_floatops", get_percentage(floatingALU)));
+    opstat_map.insert(featurepair("percent_loads", get_percentage(loads)));
+    opstat_map.insert(featurepair("percent_stores", get_percentage(stores)));
+    opstat_map.insert(featurepair("percent_memops", get_percentage(memory)));
+    opstat_map.insert(featurepair("percent_branchops", get_percentage(branch)));
+    opstat_map.insert(featurepair("percent_otherops", get_percentage(other)));
     return opstat_map;
 }
 
