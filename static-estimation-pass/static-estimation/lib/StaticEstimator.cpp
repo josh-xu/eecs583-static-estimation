@@ -65,26 +65,32 @@ void StaticEstimatorPass::calculatePaths(Function* fn) {
 
   PI->setCurrentFunction(fn);
   unsigned nPaths = PI->getPotentialPathCount();
+  unsigned nPathsRun = PI->pathsRun();
   errs() << "There are " << nPaths << " paths\n";
-  // Enumerate all paths in this function
-  for (int i=0; i<nPaths; i++) {
-      // Show progress for large values
-      if (i % 10000 == 0)
-          errs() << "Computed for " << i << "/" << nPaths << " paths\n";
+  if (nPathsRun == 0) {
+      errs() << "This function is never run in profiling! Skipping...\n";
+  }
+  else {
+      // Enumerate all paths in this function
+      for (int i=0; i<nPaths; i++) {
+          // Show progress for large values
+          if (i % 10000 == 0)
+              errs() << "Computed for " << i << "/" << nPaths << " paths\n";
 
-      ProfilePath* curPath = PI->getPath(i);
-      unsigned n_real_count = 0;
-      if (curPath) {
-          path = *(curPath->getPathBlocks());
-          n_real_count = curPath->getCount();
+          ProfilePath* curPath = PI->getPath(i);
+          unsigned n_real_count = 0;
+          if (curPath) {
+              path = *(curPath->getPathBlocks());
+              n_real_count = curPath->getCount();
+          }
+
+          // Extract features 
+          FeatureExtractor* features = new FeatureExtractor(path);
+          features->extractFeatures();
+          std::string fnName = fn->getName();
+          ofs << fnName << "." << i << ", " << n_real_count << "," << features->getFeaturesCSV();
+          delete features;
       }
-
-      // Extract features 
-      FeatureExtractor* features = new FeatureExtractor(path);
-      features->extractFeatures();
-      std::string fnName = fn->getName();
-      ofs << fnName << "." << i << ", " << n_real_count << "," << features->getFeaturesCSV();
-      delete features;
   }
 }
 
