@@ -12,6 +12,7 @@ using namespace llvm;
 
 typedef std::map<std::string, float> featuremap;
 typedef std::pair<std::string, float> featurepair;
+typedef std::map<unsigned, unsigned> instvector;
 
 class FeatureExtractor {
     featuremap features;
@@ -23,6 +24,8 @@ class FeatureExtractor {
     
     public:
         FeatureExtractor(std::vector<BasicBlock*> path);
+
+        static instvector getBlockInstVec(BasicBlock* BB);
         void extractFeatures();
         void countTryCatch();
         void countInstructionTypes();
@@ -31,6 +34,7 @@ class FeatureExtractor {
         void countLocalGlobalVars();
         void countCallInfo();
 
+        std::string getFeaturesLSTM();
         std::string getFeaturesCSV();
         std::string getFeaturesCSVNames();
 

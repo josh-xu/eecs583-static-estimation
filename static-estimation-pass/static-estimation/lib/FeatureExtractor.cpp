@@ -12,6 +12,9 @@
 #include "FeatureExtractor.h"
 #include "OpStatCounter.h"
 
+// I don't actually know this value so I'm choosing an arbitrary value
+#define MAX_OPCODE 100
+
 FeatureExtractor::FeatureExtractor(std::vector<BasicBlock*> path) {
     BBPath = path;
     for (auto bb : path) {
@@ -24,6 +27,37 @@ FeatureExtractor::FeatureExtractor(std::vector<BasicBlock*> path) {
 
 void FeatureExtractor::countHighLevelFeatures() {
     features.insert(featurepair("total_instructions", InstPath.size()));
+}
+
+// For a given BB, create a map of (opcode -> # of times for this opcode)
+instvector FeatureExtractor::getBlockInstVec(BasicBlock* BB) {
+    instvector bbVector;
+    for (BasicBlock::iterator i = BB->begin(), e = BB->end(); i != e; ++i) {
+        Instruction* inst = &*i;
+        bbVector[inst->getOpcode()]++;
+    }
+    return bbVector;
+}
+
+// Extract fixed length features for each basic block, one BB on each line
+// The features correspond to how many times each opcode was found in the BB
+std::string FeatureExtractor::getFeaturesLSTM() {
+    std::ostringstream line;
+    for (auto bb : BBPath) {
+        std::string sep = "";
+        instvector bbVector = FeatureExtractor::getBlockInstVec(bb);
+        for (int i=0; i<MAX_OPCODE; i++) {
+            unsigned n_count = 0;
+            if (bbVector.find(i) != bbVector.end())
+                n_count = bbVector[i];
+
+            line << sep << n_count;
+            sep = ",";
+        }
+        line << "\n";
+    }
+    line << "\n";
+    return line.str();
 }
 
 std::string FeatureExtractor::getFeaturesCSVNames() {
