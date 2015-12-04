@@ -41,8 +41,11 @@ private:
   // with code to save the profile to disk.
   bool runOnModule(Module &M);
 
+  // Calculate the path for a single ID
+  std::vector<BasicBlock*> computePath(BLInstrumentationDag* dag, unsigned pathNo);
+
   // Calculates all paths for a dag
-  void calculatePaths(Function* fn);
+  void calculatePaths(BLInstrumentationDag* dag);
 
   // Analyzes the function for Ball-Larus path profiling, and inserts code.
   void runOnFunction(std::vector<Constant*> &ftInit, Function &F, Module &M);
@@ -54,22 +57,52 @@ private:
 public:
   static char ID; // Pass identification, replacement for typeid
   LSTMStaticEstimatorPass() : ModulePass(ID) {
-    //initializeLSTMStaticEstimatorPass(*PassRegistry::getPassRegistry());
+    //initializeStaticEstimatorPass(*PassRegistry::getPassRegistry());
   }
 
   virtual const char *getPassName() const {
-    return "Static Estimation";
+    return "LSTM Static Estimation";
   }
 };
 
-// Iterate through all possible paths in the dag
-void LSTMStaticEstimatorPass::calculatePaths(Function* fn) {
-  std::vector<BasicBlock*> path;
+// Compute the path through the DAG from its path number
+std::vector<BasicBlock*> LSTMStaticEstimatorPass::computePath(BLInstrumentationDag* dag, unsigned pathNo) {
+    unsigned R = pathNo;
+    std::vector<BasicBlock*> path;
 
-  PI->setCurrentFunction(fn);
-  unsigned nPaths = PI->getPotentialPathCount();
-  unsigned nPathsRun = PI->pathsRun();
+    BLInstrumentationNode* curNode = (BLInstrumentationNode*)(dag->getRoot());
+    while (1) {
+        BLInstrumentationEdge* nextEdge;
+        unsigned bestEdge = 0;
+        // Add the basic block to the list
+        path.push_back(curNode->getBlock());
+        for (BLEdgeIterator next = curNode->succBegin(), end = curNode->succEnd(); next != end; next++) {
+            // We want the largest edge that's less than R
+            BLInstrumentationEdge* i = (BLInstrumentationEdge*) *next;
+            unsigned weight = i->getWeight();
+            if (weight <= R && weight >= bestEdge) {
+                bestEdge = weight;
+                nextEdge = i;
+            }
+        }
+        BLInstrumentationNode* nextNode = (BLInstrumentationNode*)(nextEdge->getTarget());
+        // Terminate on the <null> 
+        if (!nextNode->getBlock())
+            break;
+        // Move to next node
+        curNode = nextNode;
+        R -= bestEdge;
+    }
+    return path;
+}
+// Iterate through all possible paths in the dag
+void LSTMStaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
+  unsigned nPaths = dag->getNumberOfPaths();
   errs() << "There are " << nPaths << " paths\n";
+
+  Function* fn = dag->getRoot()->getBlock()->getParent();
+  PI->setCurrentFunction(fn);
+  unsigned nPathsRun = PI->pathsRun();
   if (nPathsRun == 0) {
       errs() << "This function is never run in profiling! Skipping...\n";
   }
@@ -77,13 +110,13 @@ void LSTMStaticEstimatorPass::calculatePaths(Function* fn) {
       // Enumerate all paths in this function
       for (int i=0; i<nPaths; i++) {
           // Show progress for large values
-          if (i % 10000 == 0)
+          if (i % 10000 == 0 && i != 0)
               errs() << "Computed for " << i << "/" << nPaths << " paths\n";
 
+          std::vector<BasicBlock*> path = computePath(dag, i);
           ProfilePath* curPath = PI->getPath(i);
           unsigned n_real_count = 0;
           if (curPath) {
-              path = *(curPath->getPathBlocks());
               n_real_count = curPath->getCount();
           }
 
@@ -104,8 +137,15 @@ void LSTMStaticEstimatorPass::runOnFunction(std::vector<Constant*> &ftInit,
                                  Function &F, Module &M) {
   errs() << "Running on function " << F.getName() << "\n";
 
+  // Build DAG from CFG
+  BLInstrumentationDag dag = BLInstrumentationDag(F);
+  dag.init();
+
+  // give each path a unique integer value
+  dag.calculatePathNumbers();
+ 
   // Calculate the features for each path 
-  calculatePaths(&F);
+  calculatePaths(&dag);
 }
 
 bool LSTMStaticEstimatorPass::runOnModule(Module &M) {
@@ -114,7 +154,7 @@ bool LSTMStaticEstimatorPass::runOnModule(Module &M) {
   PI = &getAnalysis<PathProfileInfo>();
 
   // Start outputs
-  std::string fname = "feature_output.csv";
+  std::string fname = "lstm.csv";
   errs() << "Writing to " << fname << "\n";
   ofs.open(fname, std::ofstream::out);
 
