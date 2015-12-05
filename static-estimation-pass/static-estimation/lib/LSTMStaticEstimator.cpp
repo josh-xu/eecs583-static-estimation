@@ -1,3 +1,6 @@
+// This pass extracts LSTM features in a similar method to the static estimator pass. 
+// Instead of creating a feature vector for each path, however, we create a (simple)
+// feature vector for each basic block and will use those BB's as the sequences to the LSTM
 #include "llvm/Transforms/Instrumentation.h"
 #include "ProfilingUtils.h"
 #include "llvm/Analysis/PathNumbering.h"
@@ -26,7 +29,7 @@
 
 using namespace llvm;
 
-class StaticEstimatorPass : public ModulePass {
+class LSTMStaticEstimatorPass : public ModulePass {
 private:
   // Profiling
   PathProfileInfo* PI;
@@ -53,17 +56,17 @@ private:
 
 public:
   static char ID; // Pass identification, replacement for typeid
-  StaticEstimatorPass() : ModulePass(ID) {
+  LSTMStaticEstimatorPass() : ModulePass(ID) {
     //initializeStaticEstimatorPass(*PassRegistry::getPassRegistry());
   }
 
   virtual const char *getPassName() const {
-    return "Static Estimation";
+    return "LSTM Static Estimation";
   }
 };
 
 // Compute the path through the DAG from its path number
-std::vector<BasicBlock*> StaticEstimatorPass::computePath(BLInstrumentationDag* dag, unsigned pathNo) {
+std::vector<BasicBlock*> LSTMStaticEstimatorPass::computePath(BLInstrumentationDag* dag, unsigned pathNo) {
     unsigned R = pathNo;
     std::vector<BasicBlock*> path;
 
@@ -92,9 +95,8 @@ std::vector<BasicBlock*> StaticEstimatorPass::computePath(BLInstrumentationDag* 
     }
     return path;
 }
-
 // Iterate through all possible paths in the dag
-void StaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
+void LSTMStaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
   unsigned nPaths = dag->getNumberOfPaths();
   errs() << "There are " << nPaths << " paths\n";
 
@@ -120,16 +122,18 @@ void StaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
 
           // Extract features 
           FeatureExtractor* features = new FeatureExtractor(path);
-          features->extractFeatures();
           std::string fnName = fn->getName();
-          ofs << fnName << "." << i << ", " << n_real_count << "," << features->getFeaturesCSV();
+          ofs << fnName << "_" << i << " "                  // Function ID
+              << n_real_count << " "                        // Ground truth
+              << path.size() << "\n"                        // Number of BB to follow
+              << features->getFeaturesLSTM();               // BBs and features
           delete features;
       }
   }
 }
 
 // Entry point of the module
-void StaticEstimatorPass::runOnFunction(std::vector<Constant*> &ftInit,
+void LSTMStaticEstimatorPass::runOnFunction(std::vector<Constant*> &ftInit,
                                  Function &F, Module &M) {
   errs() << "Running on function " << F.getName() << "\n";
 
@@ -144,13 +148,13 @@ void StaticEstimatorPass::runOnFunction(std::vector<Constant*> &ftInit,
   calculatePaths(&dag);
 }
 
-bool StaticEstimatorPass::runOnModule(Module &M) {
+bool LSTMStaticEstimatorPass::runOnModule(Module &M) {
   errs() << "Running research module\n";
 
   PI = &getAnalysis<PathProfileInfo>();
 
   // Start outputs
-  std::string fname = "feature_output.csv";
+  std::string fname = "lstm.csv";
   errs() << "Writing to " << fname << "\n";
   ofs.open(fname, std::ofstream::out);
 
@@ -165,14 +169,6 @@ bool StaticEstimatorPass::runOnModule(Module &M) {
     return false;
   }
 
-  // Run some dummy feature extraction to get the col names
-  std::vector<BasicBlock*> tempPath;
-  tempPath.push_back(&Main->getEntryBlock());
-  FeatureExtractor* features = new FeatureExtractor(tempPath);
-  features->extractFeatures();
-  ofs << "ID,RealCount," << features->getFeaturesCSVNames();
-
-
   std::vector<Constant*> ftInit;
   unsigned functionNumber = 0;
   for (Module::iterator F = M.begin(), E = M.end(); F != E; F++) {
@@ -186,10 +182,10 @@ bool StaticEstimatorPass::runOnModule(Module &M) {
   return false;
 }
 
-void StaticEstimatorPass::getAnalysisUsage(AnalysisUsage &AU) const {
+void LSTMStaticEstimatorPass::getAnalysisUsage(AnalysisUsage &AU) const {
     AU.addRequired<PathProfileInfo>();
 }
 
 // Register the path profiler as a pass
-char StaticEstimatorPass::ID = 0;
-static RegisterPass<StaticEstimatorPass> X("StaticEstimatorPass", "insert-static-estimation", false, false);
+char LSTMStaticEstimatorPass::ID = 0;
+static RegisterPass<LSTMStaticEstimatorPass> X("LSTMStaticEstimatorPass", "insert-lstm-static-estimation", false, false);

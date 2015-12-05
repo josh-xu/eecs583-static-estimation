@@ -20,6 +20,13 @@ OpStatCounter::OpStatCounter(std::vector<Instruction*> pathInsts) {
     all = 0;
 }
 
+float OpStatCounter::get_percentage(int val) {
+    if (all == 0)
+        return 0;
+
+    return val/float(all);
+}
+
 featuremap OpStatCounter::get_opstats() {
     featuremap opstat_map;
     // Generate totals for insts
