@@ -13,12 +13,15 @@
 #include "OpStatCounter.h"
 
 FeatureExtractor::FeatureExtractor(std::vector<BasicBlock*> path) {
+    int n_basicblocks = 0;
     BBPath = path;
     for (auto bb : path) {
         for (BasicBlock::iterator i = bb->begin(), e = bb->end(); i != e; ++i) {
             InstPath.push_back(&*i);
         }
+        n_basicblocks++;
     }
+    features.insert(featurepair("n_basicblocks", n_basicblocks));
     return;
 }
 
@@ -93,14 +96,15 @@ void FeatureExtractor::countTryCatch() {
 }
 
 void FeatureExtractor::countEqualities() {
-    int n_equalities = 0;
+    // This is now done more accurately and in-depth in OpStatCounter
+    /*int n_equalities = 0;
     for (auto inst : InstPath) {
         if (ICmpInst* icmp = dyn_cast<ICmpInst>(inst)) {
             if (icmp->isEquality())
                 n_equalities++;
         }
     }
-    features.insert(featurepair("n_equalities", n_equalities));
+    features.insert(featurepair("n_equalities", n_equalities));*/
 }
 
 void FeatureExtractor::countCallInfo() {
@@ -125,7 +129,7 @@ void FeatureExtractor::countCallInfo() {
 void FeatureExtractor::extractFeatures() {
     countHighLevelFeatures();
     countInstructionTypes();
-    countEqualities();
+    //countEqualities();
     countTryCatch();
     countLocalGlobalVars();
     countCallInfo();

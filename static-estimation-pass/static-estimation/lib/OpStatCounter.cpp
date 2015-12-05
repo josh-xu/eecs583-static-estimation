@@ -11,8 +11,12 @@ OpStatCounter::OpStatCounter(std::vector<Instruction*> pathInsts) {
     memory = 0;
     loads = 0;
     stores = 0;
-    other = 0;
+    alloca = 0;
     branch = 0;
+    compares = 0;
+    equality_checks = 0;
+    relational_checks = 0;
+    other = 0;
     all = 0;
 }
 
@@ -24,10 +28,14 @@ featuremap OpStatCounter::get_opstats() {
     // easier for when we run classification
     opstat_map.insert(featurepair("percent_intops", integerALU/float(all)));
     opstat_map.insert(featurepair("percent_floatops", floatingALU/float(all)));
+    opstat_map.insert(featurepair("percent_memops", memory/float(all)));
     opstat_map.insert(featurepair("percent_loads", loads/float(all)));
     opstat_map.insert(featurepair("percent_stores", stores/float(all)));
-    opstat_map.insert(featurepair("percent_memops", memory/float(all)));
+    opstat_map.insert(featurepair("percent_alloca", alloca/float(all)));
     opstat_map.insert(featurepair("percent_branchops", branch/float(all)));
+    opstat_map.insert(featurepair("percent_compares", compares/float(all)));
+    opstat_map.insert(featurepair("percent_equality_checks", equality_checks/float(all)));
+    opstat_map.insert(featurepair("percent_equality_checks", relational_checks/float(all)));
     opstat_map.insert(featurepair("percent_otherops", other/float(all)));
     return opstat_map;
 }
@@ -76,6 +84,10 @@ void OpStatCounter::run_counts() {
                 break;
 
             case Instruction::Alloca :
+                alloca++;
+                memory++;
+                break;
+
             case Instruction::GetElementPtr :
             case Instruction::Fence :
             case Instruction::AtomicCmpXchg:
@@ -90,6 +102,28 @@ void OpStatCounter::run_counts() {
                 branch++;
                 break;
     
+            case Instruction::ICmpInst :
+                compares++;
+                ICmpInst * cmp = dyn_cast<ICmpInst>inst;
+                if(cmp->isEquality()){
+                    equality_checks++;
+                }
+                else{
+                    relational_checks++;
+                }
+                break;
+
+            case Instruction::FCmpInst :
+                compares++;
+                FCmpInst * cmp = dyn_cast<FCmpInst>inst;
+                if(cmp->isEquality()){
+                    equality_checks++;
+                }
+                else{
+                    relational_checks++;
+                }
+                break;
+
             default:
                 other++;
                 break;
