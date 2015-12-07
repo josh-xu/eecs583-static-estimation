@@ -6,9 +6,11 @@
 *.ll
 *.dot
 *.csv
+*.txt
 
 # Benchmarks
 SPEC*
+benchmarks/
 
 # Vagrant
 .vagrant/
@@ -45,3 +47,7 @@ SPEC*
 # Text file swaps
 *~
 *.swp
+
+# Other OS stuff
+~*
+*.DS_Store
