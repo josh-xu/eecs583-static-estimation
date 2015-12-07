@@ -22,6 +22,10 @@ class OpStatCounter {
     long other;
     long branch;
     long all;
+    long alloca;
+    long compares;
+    long equality_checks;
+    long relational_checks;
 
     void run_counts();
 
