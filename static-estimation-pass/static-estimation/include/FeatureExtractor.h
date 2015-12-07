@@ -2,11 +2,16 @@
 #define FTEXT_H
 
 #include "llvm/Pass.h"
-#include "llvm/IR/Function.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Type.h"
 
 #include <vector>
-#include <map>
+#include <utility>
 #include <string>
+#include <sstream>
+#include <iomanip>
+
 
 using namespace llvm;
 

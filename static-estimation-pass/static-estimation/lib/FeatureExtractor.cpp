@@ -1,14 +1,3 @@
-#include "llvm/Pass.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/Type.h"
-
-#include <vector>
-#include <utility>
-#include <string>
-#include <sstream>
-#include <iomanip>
-
 #include "FeatureExtractor.h"
 #include "OpStatCounter.h"
 
@@ -129,18 +118,6 @@ void FeatureExtractor::countTryCatch() {
     features.insert(featurepair("n_catches", n_catches));
 }
 
-void FeatureExtractor::countEqualities() {
-    // This is now done more accurately and in-depth in OpStatCounter
-    /*int n_equalities = 0;
-    for (auto inst : InstPath) {
-        if (ICmpInst* icmp = dyn_cast<ICmpInst>(inst)) {
-            if (icmp->isEquality())
-                n_equalities++;
-        }
-    }
-    features.insert(featurepair("n_equalities", n_equalities));*/
-}
-
 void FeatureExtractor::countCallInfo() {
     int n_function_calls = 0;
     int n_params = 0;
@@ -163,7 +140,6 @@ void FeatureExtractor::countCallInfo() {
 void FeatureExtractor::extractFeatures() {
     countHighLevelFeatures();
     countInstructionTypes();
-    //countEqualities();
     countTryCatch();
     countLocalGlobalVars();
     countCallInfo();

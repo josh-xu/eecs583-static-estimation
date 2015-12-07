@@ -50,6 +50,8 @@ featuremap OpStatCounter::get_opstats() {
 void OpStatCounter::run_counts() {
     for (auto inst : IRSet) {
         all++;
+        ICmpInst* icmp;
+        FCmpInst* fcmp;
         switch(inst->getOpcode()) {
             // Integer ALU
             case Instruction::Add :
@@ -110,23 +112,23 @@ void OpStatCounter::run_counts() {
             case Instruction::ICmp :
                 integerALU++;
                 compares++;
-                ICmpInst * cmp = dyn_cast<ICmpInst>inst;
-                if(cmp->isEquality()){
+                icmp = dyn_cast<ICmpInst>(inst);
+                if (icmp->isEquality()) {
                     equality_checks++;
                 }
-                else{
+                else {
                     relational_checks++;
                 }
                 break;
-
+    
             case Instruction::FCmp :
                 floatingALU++;
                 compares++;
-                FCmpInst * cmp = dyn_cast<FCmpInst>inst;
-                if(cmp->isEquality()){
+                fcmp = dyn_cast<FCmpInst>(inst);
+                if (fcmp->isEquality()) {
                     equality_checks++;
                 }
-                else{
+                else {
                     relational_checks++;
                 }
                 break;
