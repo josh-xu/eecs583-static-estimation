@@ -64,7 +64,6 @@ void OpStatCounter::run_counts() {
             case Instruction::And :
             case Instruction::Or :
             case Instruction::Xor :
-            case Instruction::ICmp :
             case Instruction::SRem :
                 integerALU++;
                 break;
@@ -75,7 +74,6 @@ void OpStatCounter::run_counts() {
             case Instruction::FMul :
             case Instruction::FDiv :
             case Instruction::FRem :
-            case Instruction::FCmp :
                 floatingALU++;
                 break;
 
@@ -109,7 +107,8 @@ void OpStatCounter::run_counts() {
                 branch++;
                 break;
     
-            case Instruction::ICmpInst :
+            case Instruction::ICmp :
+                integerALU++;
                 compares++;
                 ICmpInst * cmp = dyn_cast<ICmpInst>inst;
                 if(cmp->isEquality()){
@@ -120,7 +119,8 @@ void OpStatCounter::run_counts() {
                 }
                 break;
 
-            case Instruction::FCmpInst :
+            case Instruction::FCmp :
+                floatingALU++;
                 compares++;
                 FCmpInst * cmp = dyn_cast<FCmpInst>inst;
                 if(cmp->isEquality()){
