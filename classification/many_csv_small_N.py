@@ -114,7 +114,7 @@ def print_statistics(files):
 
     print("===========STATS===========")
     print("Positive instances: {}/{}".format(pos, len(all_frame)))
-    print("Baseline percentage: {0:.4f}%".format(1-float(pos)/len(all_frame)))
+    print("Baseline percentage: {0:.4f}%".format(100*(1-float(pos)/len(all_frame))))
     print("")
     
 
@@ -127,13 +127,18 @@ def main():
     models = []
     models.append((LogisticRegression(), "Base Logistic Regression"))
     models.append((RandomForestClassifier(), "Random Forest"))
+    models.append((RandomForestClassifier(n_estimators=30), "Random Forest (Estimators=30)"))
+    models.append((RandomForestClassifier(n_estimators=50), "Random Forest (Estimators=50)"))
+    models.append((RandomForestClassifier(n_estimators=100), "Random Forest (Estimators=100)"))
+    models.append((RandomForestClassifier(n_estimators=150), "Random Forest (Estimators=150)"))
+    models.append((RandomForestClassifier(n_estimators=250), "Random Forest (Estimators=250)"))
     models.append((SVC(C=0.1, kernel='rbf', probability=True), "SVM (w/ RBF)"))
 
     # Run testing on all models
     for model, name in models:
         print("==========={}===========".format(name))
         all_auc, all_acc = cv_on_filelist(model, files)
-        print("Final mean accuracy: {0:.4f}%".format(np.mean(all_acc)))
+        print("Final mean accuracy: {0:.4f}%".format(np.mean(all_acc)*100))
         print("Final mean AUC score: {0:.3f}".format(np.mean(all_auc)))
 
 
