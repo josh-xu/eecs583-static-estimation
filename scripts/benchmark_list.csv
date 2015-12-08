@@ -1,0 +1,41 @@
+401.bzip2/src, bzip2final, -k -f ../data/input/input.combined
+429.mcf/src, mcf429final, ../data/input/inp.in
+444.namd/src, namd444final,--iterations 3 --input ../data/input/namd.input
+458.sjeng/src, sjeng458final, ../data/input/test.txt
+470.lbm/src, lbm470final, 10 ../data/input/lbm.in 2 1
+473.astar/src, astar473final, ../data/input/BigLakes1024.cfg
+998.specrand/src, specrand998final, 23 9999999
+ptrdist-1.1/anagram/src, anagramfinal, words < ../data/input/input.in
+ptrdist-1.1/bc/src, bcfinal, < ../data/input/primes.b
+ptrdist-1.1/ft/src, ftfinal, 1000 2000
+ptrdist-1.1/ks/src, ksfinal, ../data/input/KL-5.in
+polybench-c-4.1/all/2mm, 2mm_final, 
+polybench-c-4.1/all/3mm, 3mm_final, 
+polybench-c-4.1/all/adi, adi_final, 
+polybench-c-4.1/all/atax, atax_final, 
+polybench-c-4.1/all/bicg, bicg_final, 
+polybench-c-4.1/all/cholesky, cholesky_final, 
+polybench-c-4.1/all/correlation, correlation_final, 
+polybench-c-4.1/all/covariance, covariance_final, 
+polybench-c-4.1/all/deriche, deriche_final, 
+polybench-c-4.1/all/doitgen, doitgen_final, 
+polybench-c-4.1/all/durbin, durbin_final, 
+polybench-c-4.1/all/fdtd-2d, fdtd-2d_final, 
+polybench-c-4.1/all/floyd-warshall, floyd-warshall_final, 
+polybench-c-4.1/all/gemm, gemm_final, 
+polybench-c-4.1/all/gemver, gemver_final, 
+polybench-c-4.1/all/gesummv, gesummv_final, 
+polybench-c-4.1/all/gramschmidt, gramschmidt_final, 
+polybench-c-4.1/all/heat-3d, heat-3d_final, 
+polybench-c-4.1/all/jacobi-1d, jacobi-1d_final, 
+polybench-c-4.1/all/jacobi-2d, jacobi-2d_final, 
+polybench-c-4.1/all/lu, lu_final, 
+polybench-c-4.1/all/ludcmp, ludcmp_final, 
+polybench-c-4.1/all/mvt, mvt_final, 
+polybench-c-4.1/all/nussinov, nussinov_final, 
+polybench-c-4.1/all/seidel-2d, seidel-2d_final, 
+polybench-c-4.1/all/symm, symm_final, 
+polybench-c-4.1/all/syr2k, syr2k_final, 
+polybench-c-4.1/all/syrk, syrk_final, 
+polybench-c-4.1/all/trisolv, trisolv_final, 
+polybench-c-4.1/all/trmm, trmm_final,  
