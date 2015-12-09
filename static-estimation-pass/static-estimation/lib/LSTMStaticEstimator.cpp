@@ -154,7 +154,7 @@ bool LSTMStaticEstimatorPass::runOnModule(Module &M) {
   PI = &getAnalysis<PathProfileInfo>();
 
   // Start outputs
-  std::string fname = "lstm.csv";
+  std::string fname = "feature_output.csv";
   errs() << "Writing to " << fname << "\n";
   ofs.open(fname, std::ofstream::out);
 

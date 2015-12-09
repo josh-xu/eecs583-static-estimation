@@ -3,9 +3,9 @@
 *.out
 *.s
 *.profile
+*.csv
 *.ll
 *.dot
-*.csv
 *.txt
 
 # Benchmarks
