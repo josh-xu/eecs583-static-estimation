@@ -4,7 +4,7 @@ clc; clear all;
 isOctave = exist('OCTAVE_VERSION', 'builtin') ~= 0
 
 % open file
-fileID = fopen('benchmark_list_poly.csv');
+fileID = fopen('benchmark_list.csv');
 
 % load data
 data = textscan(fileID, '%s %s %s','delimiter',',');

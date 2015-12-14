@@ -27,6 +27,8 @@
 #include "BLInstrumentation.h"
 #include "FeatureExtractor.h"
 
+#define MAX_PATHS 500
+
 using namespace llvm;
 
 class LSTMStaticEstimatorPass : public ModulePass {
@@ -100,6 +102,12 @@ void LSTMStaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
   unsigned nPaths = dag->getNumberOfPaths();
   errs() << "There are " << nPaths << " paths\n";
 
+  int stride = nPaths / MAX_PATHS;
+  if (stride <= 1)
+      stride = 1;
+
+  errs() << "Using stride " << stride << "\n";
+
   Function* fn = dag->getRoot()->getBlock()->getParent();
   PI->setCurrentFunction(fn);
   unsigned nPathsRun = PI->pathsRun();
@@ -107,11 +115,13 @@ void LSTMStaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
       errs() << "This function is never run in profiling! Skipping...\n";
   }
   else {
+      int n_extracted = 0;
       // Enumerate all paths in this function
       for (int i=0; i<nPaths; i++) {
           // Show progress for large values
-          if (i % 10000 == 0 && i != 0)
+          if (i % 10000 == 0 && i != 0) {
               errs() << "Computed for " << i << "/" << nPaths << " paths\n";
+          }
 
           std::vector<BasicBlock*> path = computePath(dag, i);
           ProfilePath* curPath = PI->getPath(i);
@@ -120,15 +130,29 @@ void LSTMStaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
               n_real_count = curPath->getCount();
           }
 
-          // Extract features 
-          FeatureExtractor* features = new FeatureExtractor(path);
-          std::string fnName = fn->getName();
-          ofs << fnName << "_" << i << " "                  // Function ID
-              << n_real_count << " "                        // Ground truth
-              << path.size() << "\n"                        // Number of BB to follow
-              << features->getFeaturesLSTM();               // BBs and features
-          delete features;
+          // We need to subsample the paths, but only if this isn't a pos example
+          bool extract = false;
+          if (n_real_count == 0) {
+              if (i % stride == 0) {
+                  extract = true;
+              }
+          } else {
+              extract = true;
+          }
+    
+          if (extract) {
+              // Extract features 
+              FeatureExtractor* features = new FeatureExtractor(path);
+              std::string fnName = fn->getName();
+              ofs << fnName << "_" << i << " "                  // Function ID
+                  << n_real_count << " "                        // Ground truth
+                  << path.size() << "\n"                        // Number of BB to follow
+                  << features->getFeaturesLSTM();               // BBs and features
+              delete features;
+              n_extracted++;
+          }
       }
+      errs() << "Extracted " << n_extracted << " paths for this function\n\n";
   }
 }
 

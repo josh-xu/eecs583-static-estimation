@@ -27,7 +27,10 @@ def combine_files(files):
     final_frame = pd.DataFrame()
     sanity_N = 0
     for f in files:
-        this_frame = pd.read_csv(f, index_col=0)
+        this_frame = pd.read_csv(f, index_col=None, header=None)
+        newcols = this_frame.columns.values.astype(str)
+        newcols[0] = 'RealCount'
+        this_frame.columns = newcols
         final_frame = final_frame.append(this_frame)
         sanity_N += len(this_frame)
 
@@ -58,8 +61,10 @@ def classify_set(model, train, test):
         Raw accuracy score
     '''
     X_train = train.iloc[:, 1:]
+    THRESH = np.mean(train['RealCount']) * 0.2
     y_train = (train['RealCount'] > THRESH)
     X_test = test.iloc[:, 1:]
+    THRESH = np.mean(test['RealCount']) * 0.2
     y_test = (test['RealCount'] > THRESH)
 
     model.fit(X_train, y_train)
@@ -129,10 +134,6 @@ def main():
     models.append((RandomForestClassifier(), "Random Forest"))
     models.append((RandomForestClassifier(n_estimators=30), "Random Forest (Estimators=30)"))
     models.append((RandomForestClassifier(n_estimators=50), "Random Forest (Estimators=50)"))
-    models.append((RandomForestClassifier(n_estimators=100), "Random Forest (Estimators=100)"))
-    models.append((RandomForestClassifier(n_estimators=150), "Random Forest (Estimators=150)"))
-    models.append((RandomForestClassifier(n_estimators=250), "Random Forest (Estimators=250)"))
-    models.append((SVC(C=0.1, kernel='rbf', probability=True), "SVM (w/ RBF)"))
 
     # Run testing on all models
     for model, name in models:
