@@ -9,10 +9,14 @@ import os
 import numpy as np
 import pandas as pd
 
+from sklearn.base import BaseEstimator
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.metrics import roc_auc_score
 from sklearn.ensemble import RandomForestClassifier
+
+from keras.models import Sequential
+from keras.layers.core import Dense, Dropout, Activation
 
 THRESH = 0
 
@@ -67,9 +71,17 @@ def classify_set(model, train, test):
     THRESH = np.mean(test['RealCount']) * 0.2
     y_test = (test['RealCount'] > THRESH)
 
-    model.fit(X_train, y_train)
-    acc = model.score(X_test, y_test)
-    probs = model.predict_proba(X_test)
+    if isinstance(model, BaseEstimator):
+        model.fit(X_train, y_train)
+        acc = model.score(X_test, y_test)
+        probs = model.predict_proba(X_test)
+    elif isinstance(model, Sequential):
+        yy = (np.arange(2) == y_train[:, None]).astype(int)
+        yyte = (np.arange(2) == y_test[:, None]).astype(int)
+        model.fit(X_train.values, yy, nb_epoch=10, batch_size=256, verbose=0)
+        _, acc = model.evaluate(X_test.values, yyte, show_accuracy=True, verbose=0)
+        probs = model.predict(X_test.values)
+
     auc = roc_auc_score(y_test, probs[:, 1])
 
     return auc, acc
@@ -110,6 +122,16 @@ def cv_on_filelist(model, files):
     print("")
     return (all_auc, all_acc)
 
+def gen_model():
+    # Create keras model
+    model = Sequential()
+    model.add(Dense(256, activation='relu', input_shape=(18,)))
+    model.add(Dropout(0.3))
+    model.add(Dense(256, activation='relu'))
+    model.add(Dropout(0.3))
+    model.add(Dense(2, activation='softmax'))
+    model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+    return model
 
 def print_statistics(files):
     '''Collect population stats for entire dataset'''
@@ -130,10 +152,10 @@ def main():
 
     # Create models
     models = []
+    models.append((gen_model(), 'MLP'))
+
     models.append((LogisticRegression(), "Base Logistic Regression"))
-    models.append((RandomForestClassifier(), "Random Forest"))
     models.append((RandomForestClassifier(n_estimators=30), "Random Forest (Estimators=30)"))
-    models.append((RandomForestClassifier(n_estimators=50), "Random Forest (Estimators=50)"))
 
     # Run testing on all models
     for model, name in models:
