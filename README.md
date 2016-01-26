@@ -1,1 +1,1 @@
-This project is for eecs583. 
+This project was for eecs583. 
