@@ -104,6 +104,31 @@ def cv_on_filelist(files):
     return all_auc, all_acc
 
 
+def calc_masked_means(mask_len, preds):
+    mean_preds = np.zeros(len(mask_len))
+    last_preds = np.zeros(len(mask_len))
+    for idx, mask in enumerate(mask_len):
+        if mask == 0:
+            mean = 0
+            last = 0
+        else:
+            mean = np.mean(preds[idx, 0:mask])
+            last = preds[idx, mask-1]
+        mean_preds[idx] = mean
+        last_preds[idx] = last
+    return mean_preds, last_preds
+
+
+def calc_auc(model, X, y):
+    preds = model.predict(X)[:, :, 0]
+    mask_len = (X[:,:,0]!=-1).sum(axis=1)
+    cut_preds, last_preds = calc_masked_means(mask_len, preds)
+    yreal = y[:,:,0].mean(axis=1)
+    auc = roc_auc_score(yreal, cut_preds)
+    last = roc_auc_score(yreal, last_preds)
+    return auc, last
+
+
 def combine_files(files):
     '''Combine a set of CSVs into one large array'''
     Xs = []
@@ -124,19 +149,16 @@ def train_model(train_X, train_y, test_X, test_y):
 
     for E in range(MAX_EPOCH):
         print("Training epoch {}".format(E))
-        hist = model.fit(train_X, train_y, nb_epoch=1, batch_size=256, show_accuracy=True, validation_data=(test_X, test_y), verbose=0)
+        hist = model.fit(train_X, train_y, nb_epoch=1, batch_size=256, show_accuracy=True, validation_data=(test_X, test_y), verbose=1)
 
         # Calc AUC
-        preds = model.predict(test_X)[:, :, 0].mean(axis=1)
-        train_preds = model.predict(train_X)[:, :, 0].mean(axis=1)
-        yreal = test_y[:,:,0].mean(axis=1)
-        train_yreal = train_y[:,:,0].mean(axis=1)
-
-        auc = roc_auc_score(yreal, preds)
-        train_auc = roc_auc_score(train_yreal, train_preds)
-        metric_vals['auc'].append(auc)
-        metric_vals['train_auc'].append(train_auc)
+        print('calculating AUCs...')
+        auc, lauc = calc_auc(model, test_X, test_y)
+        train_auc, ltrain_auc = calc_auc(model, train_X, train_y)
+        metric_vals['auc'].append(lauc)
+        metric_vals['train_auc'].append(ltrain_auc)
         print("AUC: {0:.3f} ({1:.3f} Train)".format(auc, train_auc))
+        print("LAST: {0:.3f} ({1:.3f} Train)".format(lauc, ltrain_auc))
 
         # Calc other metrics
         metrics = hist.params['metrics']
@@ -160,7 +182,7 @@ def load_model():
 
 
 def main():
-    files = get_csv_list('../scripts/features_files_lstm_all/')
+    files = get_csv_list('../scripts/features_files_lstm_all')
     X = combine_files(files)
     
     all_auc, all_acc = cv_on_filelist(files)

@@ -20,8 +20,8 @@ MAX_BB = 20
 def load_model():
     model = Sequential()
     model.add(Masking(0, input_shape=(20, 100)))
-    model.add(LSTM(256, return_sequences=True))
-    model.add(LSTM(256, return_sequences=True))
+    model.add(LSTM(192, return_sequences=True))
+    model.add(LSTM(192, return_sequences=True))
     model.add(TimeDistributedDense(2))
     model.add(Activation('time_distributed_softmax'))
 
@@ -64,6 +64,29 @@ def load_features():
     return X, y
 
 
+def calc_masked_means(mask_len, preds):
+    mean_preds = np.zeros(len(mask_len))
+    last_preds = np.zeros(len(mask_len))
+    for idx, mask in enumerate(mask_len):
+        if mask == 0:
+            mean = 0
+        else:
+            mean = np.mean(preds[idx, 0:mask])
+            last = preds[idx, mask-1]
+        mean_preds[idx] = mean
+        last_preds[idx] = last
+    return mean_preds, last_preds
+
+
+def calc_auc(model, X, y):
+    preds = model.predict(X)[:, :, 0]
+    mask_len = (X[:,:,0]!=0).sum(axis=1)
+    cut_preds = calc_masked_means(mask_len, preds)
+    yreal = y[:,:,0].mean(axis=1)
+    auc = roc_auc_score(yreal, cut_preds)
+    return auc
+
+
 def main():
     X, y = load_features()
     model = load_model()
@@ -74,9 +97,7 @@ def main():
     metric_vals = defaultdict(list)
 
     # Calc start AUC
-    preds = model.predict(test_X)[:, :, 0].mean(axis=1)
-    yreal = test_y[:,:,0].mean(axis=1)
-    auc = roc_auc_score(yreal, preds)
+    auc = calc_auc(model, test_X, test_y)
     print("AUC: {0:.3f}".format(auc))
 
 
@@ -85,9 +106,7 @@ def main():
         hist = model.fit(train_X, train_y, nb_epoch=1, batch_size=64, show_accuracy=True, validation_data=(test_X, test_y), verbose=0)
 
         # Calc AUC
-        preds = model.predict(test_X)[:, :, 0].mean(axis=1)
-        yreal = test_y[:,:,0].mean(axis=1)
-        auc = roc_auc_score(yreal, preds)
+        auc = calc_auc(model, test_X, test_y)
         metric_vals['auc'].append(auc)
         print("AUC: {0:.3f}".format(auc))
 
