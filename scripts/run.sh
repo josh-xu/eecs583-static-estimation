@@ -23,6 +23,7 @@ CURRENT_DIR=$(pwd)
 
 echo "*** moving to benchmark src directory"
 cd ../benchmarks/${benchmark_name}
+pwd
 
 echo "*** cleaning previous shit"
 rm *.s
