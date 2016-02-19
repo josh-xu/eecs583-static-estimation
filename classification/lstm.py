@@ -6,6 +6,7 @@ import os
 from collections import defaultdict
 
 from keras.models import Sequential
+from keras.callbacks import EarlyStopping
 from keras.layers.normalization import BatchNormalization
 from keras.layers.core import Dense, TimeDistributedDense, Dropout, Activation, Masking
 from keras.layers.recurrent import LSTM, GRU
@@ -17,7 +18,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.cross_validation import train_test_split
 
 THRESH = 0
-MAX_EPOCH = 20
+MAX_EPOCH = 10
 MAX_BB = 70
 
 
@@ -51,14 +52,9 @@ def load_features(filename):
                 y.append(0)
             data.append(bb_data)
 
-    data_concat = np.concatenate(data).astype(float)
-    scaler = StandardScaler().fit(data_concat)
-
     X = np.ones((len(data), MAX_BB, 100)) * 0
     for i, d in enumerate(data):
         steps = d.shape[0]
-        #scaled = scaler.transform(d.astype(float))
-        #scaled = scale(d.astype(float), axis=0)
         X[i, 0:steps, :] = d
     y = np.array(y)
     y = (np.arange(2) == y[:,None]).astype(int).reshape((-1, 2, 1))
@@ -91,35 +87,28 @@ def cv_on_filelist(files):
     all_acc : list
         List of accuracy values for each fold
     '''
+    print("Running cross-validation, MAX_BB = {}".format(MAX_BB))
     all_acc = []
     all_auc = []
     for i, f in enumerate(files):
         test_files = [f]
         train_files = list(files)
         train_files.remove(f)
+
+        valid_files = [train_files[0]]
+        train_files = train_files[1:]
     
         train_X, train_y = combine_files(train_files)
+        valid_X, valid_y = combine_files(valid_files)
         test_X, test_y = combine_files(test_files)
-
-        train_mask = get_mask(train_X)
-        test_mask = get_mask(test_X)
-
-        '''
-        scale_concat = train_X.reshape(len(train_X)*MAX_BB, -1)
-        scaler = StandardScaler().fit(scale_concat)
-        for samp in range(len(train_X)):
-            train_X[samp, :, :] = scaler.transform(train_X[samp, :, :])
-        for samp in range(len(test_X)):
-            test_X[samp, :, :] = scaler.transform(test_X[samp, :, :])
-        '''
 
         yreal = test_y[:,:,0].mean(axis=1)
         print("Now classifying, this is fold {}/{}".format(i+1, len(files))) 
         if np.sum(yreal) > 0:
-            metrics = train_model(train_X, train_y, test_X, test_y, train_mask, test_mask)
+            metrics = train_model(train_X, train_y, test_X, test_y, valid_X, valid_y)
             print(metrics)
-            trainidx = np.argmax(metrics['train_auc'])
-            auc = np.max(metrics['auc'])
+            trainidx = np.argmax(metrics['val_auc'])
+            auc = metrics['auc'][trainidx]
             acc = metrics['val_acc'][-1]
 
             all_acc.append(acc)
@@ -146,8 +135,9 @@ def calc_masked_means(mask_len, preds):
     return mean_preds, last_preds
 
 
-def calc_auc(model, X, y, mask_len):
+def calc_auc(model, X, y):
     preds = model.predict(X)[:, :, 0]
+    mask_len = get_mask(X)
     cut_preds, last_preds = calc_masked_means(mask_len, preds)
     yreal = y[:,:,0].mean(axis=1)
     auc = roc_auc_score(yreal, cut_preds)
@@ -167,7 +157,8 @@ def combine_files(files):
     ally = np.concatenate(ys, axis=0)
     return allX, ally
 
-def train_model(train_X, train_y, test_X, test_y, train_mask, test_mask):
+
+def train_model(train_X, train_y, test_X, test_y, valid_X, valid_y):
     print("Rebuilding model!")
     print("We have {} train examples and {} test examples".format(train_X.shape[0], test_X.shape[0]))
     model = load_model()
@@ -175,16 +166,18 @@ def train_model(train_X, train_y, test_X, test_y, train_mask, test_mask):
 
     for E in range(MAX_EPOCH):
         print("Training epoch {}".format(E))
-        hist = model.fit(train_X, train_y, nb_epoch=1, batch_size=256, show_accuracy=True, validation_data=(test_X, test_y), verbose=1)
+        hist = model.fit(train_X, train_y, nb_epoch=1, batch_size=256, show_accuracy=True, verbose=1, validation_data=(valid_X, valid_y))
 
         # Calc AUC
         print('calculating AUCs...')
-        auc, lauc = calc_auc(model, test_X, test_y, test_mask)
-        train_auc, ltrain_auc = calc_auc(model, train_X, train_y, train_mask)
+        auc, lauc = calc_auc(model, test_X, test_y)
+        val_auc, lval_auc = calc_auc(model, valid_X, valid_y)
+        train_auc, ltrain_auc = calc_auc(model, train_X, train_y)
         metric_vals['auc'].append(lauc)
+        metric_vals['val_auc'].append(lval_auc)
         metric_vals['train_auc'].append(ltrain_auc)
-        print("AUC: {0:.3f} ({1:.3f} Train)".format(auc, train_auc))
-        print("LAST: {0:.3f} ({1:.3f} Train)".format(lauc, ltrain_auc))
+        print("AUC: {0:.3f} ({1:.3f} Val, {2:.3f} Train)".format(auc, val_auc, train_auc))
+        print("LAST: {0:.3f} ({1:.3f} Val, {2:.3f} Train)".format(lauc, lval_auc, ltrain_auc))
 
         # Calc other metrics
         metrics = hist.params['metrics']
@@ -195,10 +188,8 @@ def train_model(train_X, train_y, test_X, test_y, train_mask, test_mask):
 def load_model():
     model = Sequential()
     #model.add(Masking(-1, input_shape=(MAX_BB, 100)))
-    model.add(LSTM(256, input_shape=(MAX_BB, 100), return_sequences=True))
-    model.add(Dropout(0.7))
-    model.add(LSTM(256, return_sequences=True))
-    model.add(Dropout(0.7))
+    model.add(LSTM(512, input_shape=(MAX_BB, 100), return_sequences=True))
+    model.add(LSTM(512, return_sequences=True))
     model.add(TimeDistributedDense(2))
     model.add(Activation('softmax'))
 
@@ -207,9 +198,29 @@ def load_model():
     return model
 
 
+def get_max_BB_len(files):
+    max_bb = 0
+    for filename in files:
+        with open(filename) as f:
+            while True:
+                line = next(f, None)
+                if not line:
+                    break
+
+                try:
+                    ID, truth, n_bb = line.strip('\n').split(' ')
+                    n_bb = int(n_bb)
+                except ValueError:
+                    pass
+                
+                max_bb = max(max_bb, n_bb)
+    return max_bb
+
+
 def main():
+    global MAX_BB
     files = get_csv_list('../scripts/features_files_lstm_all')
-    X = combine_files(files)
+    MAX_BB = get_max_BB_len(files)
     
     all_auc, all_acc = cv_on_filelist(files)
     import pdb; pdb.set_trace()

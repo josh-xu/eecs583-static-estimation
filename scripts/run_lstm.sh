@@ -28,6 +28,7 @@ echo "*** cleaning previous shit"
 rm *.s
 rm *.profile
 rm *.pp.bc
+make clean
 
 echo "*** compiling to single .bc file"
 make
