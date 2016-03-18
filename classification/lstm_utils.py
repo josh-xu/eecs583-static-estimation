@@ -22,7 +22,7 @@ def load_features(filename, max_bb):
             if not line:
                 break
 
-            ID, truth, n_bb = line.strip('\n').split(' ')
+            fn, ID, truth, n_bb = line.strip('\n').split(' ')
             truth = int(truth)
             n_bb = int(n_bb)
 

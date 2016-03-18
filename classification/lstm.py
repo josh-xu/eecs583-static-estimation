@@ -27,23 +27,6 @@ def get_csv_list(folder):
     '''Get a list of CSV files out of a folder with glob'''
     return glob.glob(os.path.join(folder, '*.csv'))
 
-
-<<<<<<< HEAD
-def get_mask(X):
-    mask_sum = X.sum(axis=2)
-    mask_len = np.zeros(len(X))
-    for r in range(len(X)):
-        zero_lens = np.where(mask_sum[r, :] == 0)
-        if len(zero_lens[0]):
-            mask_len[r] = zero_lens[0][0]
-        else:
-            mask_len[r] = len(mask_sum[r, :])
-            
-    return mask_len
-
-
-=======
->>>>>>> 3fa6604578d76d0d022832a09a420a432b2c4be9
 def cv_on_filelist(files):
     '''Run cross validation at the file level
     
@@ -202,7 +185,7 @@ def get_max_BB_len(files):
                     break
 
                 try:
-                    ID, truth, n_bb = line.strip('\n').split(' ')
+                    fn, ID, truth, n_bb = line.strip('\n').split(' ')
                     n_bb = int(n_bb)
                 except ValueError:
                     pass
