@@ -22,8 +22,7 @@ def load_features(filename, max_bb):
             if not line:
                 break
 
-            fn, ID, truth, n_bb = line.strip('\n').split(' ')
-
+            ID, truth, n_bb = line.strip('\n').split(' ')
             truth = int(truth)
             n_bb = int(n_bb)
 
@@ -36,7 +35,7 @@ def load_features(filename, max_bb):
             else:
                 y.append(0)
             data.append(bb_data)
-            ids.append(int(ID))
+            ids.append(ID)
 
     X = np.ones((len(data), max_bb, 100)) * 0
     for i, d in enumerate(data):
@@ -48,6 +47,32 @@ def load_features(filename, max_bb):
     y = np.swapaxes(y, 1, 2)
     return X, y, ids
 
+def get_mask(X):
+    mask_sum = X.sum(axis=2)
+    mask_len = np.zeros(len(X))
+    for r in range(len(X)):
+        zero_lens = np.where(mask_sum[r, :] == 0)
+        if len(zero_lens[0]):
+            mask_len[r] = zero_lens[0][0]
+        else:
+            mask_len[r] = len(mask_sum[r, :])
+            
+    return mask_len
+
+
+def calc_masked_means(mask_len, preds):
+    mean_preds = np.zeros(len(mask_len))
+    last_preds = np.zeros(len(mask_len))
+    for idx, mask in enumerate(mask_len):
+        if mask == 0:
+            mean = 0
+            last = 0
+        else:
+            mean = np.mean(preds[idx, 0:mask])
+            last = preds[idx, mask-1]
+        mean_preds[idx] = mean
+        last_preds[idx] = last
+    return mean_preds, last_preds
 
 def load_model(fold_no):
     # Save the output to JSON
@@ -59,13 +84,16 @@ def load_model(fold_no):
 
 def infer_to_dataframe(filename, model):
     X, y, ids = load_features(filename, args.b)
-    y_hat = model.predict(X, verbose=1)
+    y_hat = model.predict(X, verbose=1)[:, :, 1]
+    mask_len = get_mask(X)
+    _, last_preds = calc_masked_means(mask_len, y_hat)
     #print("y: ")
     #print(y)
     #print("ids: ")
     #print(ids)
-    print(y_hat)
-    frame = pd.DataFrame(data={'yhat': y_hat}, index=ids)
+    #print(last_preds)
+    frame = pd.DataFrame(data={'yhat': last_preds}, index=ids)
+    print(frame)
     return frame
 
 

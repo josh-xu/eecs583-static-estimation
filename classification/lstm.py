@@ -28,6 +28,7 @@ def get_csv_list(folder):
     return glob.glob(os.path.join(folder, '*.csv'))
 
 
+<<<<<<< HEAD
 def get_mask(X):
     mask_sum = X.sum(axis=2)
     mask_len = np.zeros(len(X))
@@ -41,6 +42,8 @@ def get_mask(X):
     return mask_len
 
 
+=======
+>>>>>>> 3fa6604578d76d0d022832a09a420a432b2c4be9
 def cv_on_filelist(files):
     '''Run cross validation at the file level
     
@@ -127,7 +130,6 @@ def calc_auc(model, X, y):
     last = roc_auc_score(yreal, last_preds)
     return auc, last
 
-
 def combine_files(files):
     '''Combine a set of CSVs into one large array'''
     Xs = []
@@ -200,7 +202,7 @@ def get_max_BB_len(files):
                     break
 
                 try:
-                    fn, ID, truth, n_bb = line.strip('\n').split(' ')
+                    ID, truth, n_bb = line.strip('\n').split(' ')
                     n_bb = int(n_bb)
                 except ValueError:
                     pass
