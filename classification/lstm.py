@@ -17,7 +17,8 @@ from sklearn.preprocessing import scale, StandardScaler
 from sklearn.metrics import roc_auc_score
 from sklearn.cross_validation import train_test_split
 
-THRESH = 0
+from lstm_utils import *
+
 MAX_EPOCH = 10
 MAX_BB = 70
 
@@ -25,50 +26,6 @@ MAX_BB = 70
 def get_csv_list(folder):
     '''Get a list of CSV files out of a folder with glob'''
     return glob.glob(os.path.join(folder, '*.csv'))
-
-
-def load_features(filename):
-    data = []
-    y = []
-    print('generate matrix')
-    with open(filename) as f:
-        while True:
-            line = next(f, None)
-            if not line:
-                break
-
-            ID, truth, n_bb = line.strip('\n').split(' ')
-
-            truth = int(truth)
-            n_bb = int(n_bb)
-
-            text_bbs = [next(f).strip('\n') for x in range(n_bb)]
-            num_bbs = [[int(v) for v in d.split(',')] for d in text_bbs]
-            bb_data = np.array(num_bbs)
-            next(f) # Should be empty line
-            if truth > THRESH:
-                y.append(1)
-            else:
-                y.append(0)
-            data.append(bb_data)
-
-    X = np.ones((len(data), MAX_BB, 100)) * 0
-    for i, d in enumerate(data):
-        steps = d.shape[0]
-        X[i, 0:steps, :] = d
-    y = np.array(y)
-    y = (np.arange(2) == y[:,None]).astype(int).reshape((-1, 2, 1))
-    y = np.tile(y, (1, 1, MAX_BB))
-    y = np.swapaxes(y, 1, 2)
-    return X, y
-
-
-def get_mask(X):
-    mask_sum = X.sum(axis=2)
-    mask_len = np.zeros(len(X))
-    for r in range(len(X)):
-        mask_len[r] = np.where(mask_sum[r, :] == 0)[0][0]
-    return mask_len
 
 
 def cv_on_filelist(files):
@@ -85,6 +42,10 @@ def cv_on_filelist(files):
         List of AUC values for each folds
         
     all_acc : list
+:q
+
+
+
         List of accuracy values for each fold
     '''
     print("Running cross-validation, MAX_BB = {}".format(MAX_BB))
@@ -105,7 +66,7 @@ def cv_on_filelist(files):
         yreal = test_y[:,:,0].mean(axis=1)
         print("Now classifying, this is fold {}/{}".format(i+1, len(files))) 
         if np.sum(yreal) > 0:
-            metrics = train_model(train_X, train_y, test_X, test_y, valid_X, valid_y)
+            metrics = train_model(train_X, train_y, test_X, test_y, valid_X, valid_y, i)
             print(metrics)
             trainidx = np.argmax(metrics['val_auc'])
             auc = metrics['auc'][trainidx]
@@ -120,37 +81,12 @@ def cv_on_filelist(files):
     return all_auc, all_acc
 
 
-def calc_masked_means(mask_len, preds):
-    mean_preds = np.zeros(len(mask_len))
-    last_preds = np.zeros(len(mask_len))
-    for idx, mask in enumerate(mask_len):
-        if mask == 0:
-            mean = 0
-            last = 0
-        else:
-            mean = np.mean(preds[idx, 0:mask])
-            last = preds[idx, mask-1]
-        mean_preds[idx] = mean
-        last_preds[idx] = last
-    return mean_preds, last_preds
-
-
-def calc_auc(model, X, y):
-    preds = model.predict(X)[:, :, 0]
-    mask_len = get_mask(X)
-    cut_preds, last_preds = calc_masked_means(mask_len, preds)
-    yreal = y[:,:,0].mean(axis=1)
-    auc = roc_auc_score(yreal, cut_preds)
-    last = roc_auc_score(yreal, last_preds)
-    return auc, last
-
-
 def combine_files(files):
     '''Combine a set of CSVs into one large array'''
     Xs = []
     ys = []
     for f in files:
-        X, y = load_features(f)
+        X, y, _ = load_features(f, MAX_BB)
         Xs.append(X)
         ys.append(y)
     allX = np.concatenate(Xs, axis=0)
@@ -158,7 +94,7 @@ def combine_files(files):
     return allX, ally
 
 
-def train_model(train_X, train_y, test_X, test_y, valid_X, valid_y):
+def train_model(train_X, train_y, test_X, test_y, valid_X, valid_y, fold_no):
     print("Rebuilding model!")
     print("We have {} train examples and {} test examples".format(train_X.shape[0], test_X.shape[0]))
     model = load_model()
@@ -183,13 +119,21 @@ def train_model(train_X, train_y, test_X, test_y, valid_X, valid_y):
         metrics = hist.params['metrics']
         for metric in metrics:
             metric_vals[metric].append(hist.history[metric])
+
+    # Save the output to JSON
+    json_string = model.to_json()
+    with open('saved_model_arch_{}.json'.format(fold_no), 'w') as f:
+        f.write(json_string)
+    model.save_weights('saved_model_weights_{}.h5'.format(fold_no), overwrite=True)
+        
     return metric_vals
+
 
 def load_model():
     model = Sequential()
-    #model.add(Masking(-1, input_shape=(MAX_BB, 100)))
-    model.add(LSTM(512, input_shape=(MAX_BB, 100), return_sequences=True))
-    model.add(LSTM(512, return_sequences=True))
+    #model.add(Masking(-1, ))
+    model.add(LSTM(256, input_shape=(MAX_BB, 100), return_sequences=True))
+    model.add(LSTM(256, return_sequences=True))
     model.add(TimeDistributedDense(2))
     model.add(Activation('softmax'))
 
@@ -224,7 +168,6 @@ def main():
     
     all_auc, all_acc = cv_on_filelist(files)
     import pdb; pdb.set_trace()
-
 
 
 if __name__ == "__main__":
