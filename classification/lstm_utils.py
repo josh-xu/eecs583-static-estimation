@@ -35,7 +35,7 @@ def load_features(filename, max_bb):
             else:
                 y.append(0)
             data.append(bb_data)
-            ids.append(ID)
+            ids.append(fn + " " + ID)
 
     X = np.ones((len(data), max_bb, 100)) * 0
     for i, d in enumerate(data):
