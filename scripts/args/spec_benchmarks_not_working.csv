@@ -1,0 +1,3 @@
+456.hmmer/src,hmmer,--fixed 0 --mean 325 --num 45000 --sd 200 --seed 0 ../data/ref/input/nph3.hmm
+483.xalancbmk/src,xalancbmk,-v ../data/ref/input/t5.xml ../data/ref/input/xalanc.xsl
+483.xalancbmk/src,xalancbmk,-v ../data/ref/input/t5.xml ../data/ref/input/xalanc.xsl
