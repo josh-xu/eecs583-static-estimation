@@ -54,7 +54,7 @@ def cv_on_filelist(files):
     all_acc = []
     all_auc = []
     for i, f in enumerate(files):
-        if f.find(".RUN") == -1:
+        if f.find(".RUN") == 0:
             print("Skipping file: ", f)
 
         else: 
