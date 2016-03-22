@@ -23,6 +23,8 @@
 
 #include <fstream>
 #include <vector>
+#include <unordered_map>
+
 
 #include "BLInstrumentation.h"
 #include "FeatureExtractor.h"
@@ -72,25 +74,47 @@ std::vector<BasicBlock*> LSTMStaticEstimatorPass::computePath(BLInstrumentationD
     unsigned R = pathNo;
     std::vector<BasicBlock*> path;
 
+    std::unordered_map<BLInstrumentationNode*,int> visited;
+
     BLInstrumentationNode* curNode = (BLInstrumentationNode*)(dag->getRoot());
     while (1) {
         BLInstrumentationEdge* nextEdge;
         unsigned bestEdge = 0;
         // Add the basic block to the list
         path.push_back(curNode->getBlock());
-        for (BLEdgeIterator next = curNode->succBegin(), end = curNode->succEnd(); next != end; next++) {
+	visited[curNode] = 1;
+	//errs() << "next edge options: ";
+        
+	for (BLEdgeIterator next = curNode->succBegin(), end = curNode->succEnd(); next != end; next++) {
             // We want the largest edge that's less than R
             BLInstrumentationEdge* i = (BLInstrumentationEdge*) *next;
+	    //errs() << i << " ";
             unsigned weight = i->getWeight();
-            if (weight <= R && weight >= bestEdge) {
+            if (weight <= R && weight >= bestEdge && visited.find((BLInstrumentationNode*)i->getTarget()) == visited.end()) {
                 bestEdge = weight;
                 nextEdge = i;
             }
+	    /*
+	    if (R == 0 && (BLInstrumentationNode*)i->getTarget() == (BLInstrumentationNode*)dag->getExit()) {
+		errs() << "Found exit node with R=0!\n";
+		bestEdge = weight;
+		nextEdge = i;
+		break;
+	    }
+	    */
         }
-        BLInstrumentationNode* nextNode = (BLInstrumentationNode*)(nextEdge->getTarget());
-        // Terminate on the <null> 
-        if (!nextNode->getBlock())
-            break;
+	//errs() << "\n";
+	
+        BLInstrumentationNode* nextNode = (BLInstrumentationNode*)(nextEdge->getTarget());       
+
+	//errs() << "R = " << R << " nextNode: " << nextNode << " bestEdge = " << bestEdge << "\n"; 	
+
+	if (nextNode == (BLInstrumentationNode*)dag->getExit()) 
+	  break;
+
+ 	// Terminate on the <null> 
+	//if (!nextNode->getBlock())
+        //  break;
         // Move to next node
         curNode = nextNode;
         R -= bestEdge;
@@ -139,6 +163,7 @@ void LSTMStaticEstimatorPass::calculatePaths(BLInstrumentationDag* dag) {
           } else {
               extract = true;
           }
+
     
           if (extract) {
               // Extract features 
@@ -161,12 +186,19 @@ void LSTMStaticEstimatorPass::runOnFunction(std::vector<Constant*> &ftInit,
                                  Function &F, Module &M) {
   errs() << "Running on function " << F.getName() << "\n";
 
+  if (!F.getName().compare("_ZN11ComputeListD2Ev")) {
+    errs() << "Skipping...\n";
+    return;
+  }	  
+
   // Build DAG from CFG
   BLInstrumentationDag dag = BLInstrumentationDag(F);
   dag.init();
 
   // give each path a unique integer value
   dag.calculatePathNumbers();
+
+  errs() << "Starting calculatePaths..." << "\n";
  
   // Calculate the features for each path 
   calculatePaths(&dag);

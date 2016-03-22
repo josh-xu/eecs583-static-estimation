@@ -40,6 +40,7 @@ set_target_properties(FeatureExtractorHarness PROPERTIES
     COMPILE_FLAGS "-fno-rtti"
 )
 
+
 # Get proper shared-library behavior (where symbols are not necessarily
 # resolved when the shared library is linked) on OS X.
 if(APPLE)

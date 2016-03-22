@@ -1,4 +1,4 @@
-Build:
+    Build:
 
     $ cd static-estimation
     $ mkdir build
