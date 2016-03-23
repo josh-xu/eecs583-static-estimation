@@ -358,7 +358,6 @@ void BLInstrumentationDag::generateDotGraph() {
 // necessary. The destructor of BallLarusDag will call free on each pointer
 // created.
 BallLarusNode* BLInstrumentationDag::createNode(BasicBlock* BB) {
-  errs() << "createNode() \n"; 
 	return( new BLInstrumentationNode(BB) );
 }
 
@@ -370,7 +369,6 @@ BallLarusEdge* BLInstrumentationDag::createEdge(BallLarusNode* source,
                                                 BallLarusNode* target, unsigned edgeNumber) {
   // One can cast from BallLarusNode to BLInstrumentationNode since createNode
   // is overriden to produce BLInstrumentationNode.
-  errs() << "createEdge() \n";
   return( new BLInstrumentationEdge((BLInstrumentationNode*)source,
                                     (BLInstrumentationNode*)target) );
 }

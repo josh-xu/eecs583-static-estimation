@@ -68,8 +68,8 @@ echo "-> Feature extraction finished. Output saved to ${bench_dir}/feature.out"
 
 
 echo "---> Step 7: Done! Moving CSV file..."
-mv feature_output.csv $CURRENT_DIR/feature_output_lstm/${benchmark_exec}.csv
-echo "-> CSV file saved to ${CURRENT_DIR}/feature_output_lstm/${benchmark_exec}.csv"
+mv feature_output.csv $CURRENT_DIR/feature_output_lstm_optimized/${benchmark_exec}.csv
+echo "-> CSV file saved to ${CURRENT_DIR}/feature_output_lstm_optimized/${benchmark_exec}.csv"
 
 #echo "--> Moving back"
 cd $CURRENT_DIR

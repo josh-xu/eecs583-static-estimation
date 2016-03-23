@@ -7,8 +7,8 @@ using namespace std;
 int main() {
     string line;
     bool storeline = true;
-    ifstream myfile("../feature_output_lstm/omnetpp.csv");
-    ofstream outfile("../feature_output_lstm/omnetpp_fixed.csv");
+    ifstream myfile("../feature_output_lstm_optimized/omnetpp.csv");
+    ofstream outfile("../feature_output_lstm_optimized/omnetpp_fixed.csv");
 
     if (myfile && outfile) {
         while (getline( myfile, line )) {

@@ -19,7 +19,7 @@ from sklearn.cross_validation import train_test_split
 
 from lstm_utils import *
 
-MAX_EPOCH = 5
+MAX_EPOCH = 3
 MAX_BB = 70
 
 

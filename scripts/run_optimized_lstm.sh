@@ -56,7 +56,7 @@ llc ${benchmark_exec}.pp.bc -o ${benchmark_exec}.pp.s &>> pp_out
 cat pp_out | grep "error"
 
 echo "---> Step 4: Running profiling..."
-g++ -o ${benchmark_exec}.profile ${benchmark_exec}.pp.s ${libprofile_rt_path} -lm -O2
+g++ -o ${benchmark_exec}.profile ${benchmark_exec}.pp.s ${libprofile_rt_path} -lm
 eval "$cmd"
 echo "-> Execution finished. Output saved to: ${bench_dir}/prog.out"
 

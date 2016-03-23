@@ -15,7 +15,7 @@ def load_features(filename, max_bb):
     data = []
     y = []
     ids = []
-    print('generate matrix')
+    print('generate matrix for ' + filename)
     with open(filename) as f:
         while True:
             line = next(f, None)
