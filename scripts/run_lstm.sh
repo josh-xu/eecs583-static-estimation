@@ -22,7 +22,7 @@ benchmark_load=$(echo $line | cut -d "," -f3)
 #echo $benchmark_load
 
 # create run command
-cmd="./${benchmark_exec}.profile ${benchmark_load} &> prog.out"
+cmd="./${benchmark_exec}.profile ${benchmark_load} -llvmprof-output=\"pathprof.out\" &> prog.out"
 #cmd="./${benchmark_exec}.profile ${benchmark_load}"
 
 
@@ -44,6 +44,7 @@ echo "    --> Step 1: Cleaning benchmark directory..."
 rm *.s &> /dev/null
 rm *.profile &> /dev/null
 rm *.pp.bc &> /dev/null
+rm pathprof.out &> /dev/null 
 make clean &> /dev/null
 
 echo "---> Step 2: Compiling to bitcode"
