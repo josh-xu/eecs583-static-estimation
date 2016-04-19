@@ -141,7 +141,7 @@ def print_statistics(files):
 
     print("===========STATS===========")
     print("Positive instances: {}/{}".format(pos, len(all_frame)))
-    print("Baseline percentage: {0:.4f}%".format(100*(1-float(pos)/len(all_frame))))
+    print("Baseline percentage: {:.4%}".format(1-float(pos)/len(all_frame)))
     print("")
     
 
@@ -161,8 +161,8 @@ def main():
     for model, name in models:
         print("==========={}===========".format(name))
         all_auc, all_acc = cv_on_filelist(model, files)
-        print("Final mean accuracy: {0:.4f}%".format(np.mean(all_acc)*100))
-        print("Final mean AUC score: {0:.3f}".format(np.mean(all_auc)))
+        print("Final mean accuracy: {:.4%}".format(np.mean(all_acc)))
+        print("Final mean AUC score: {:.3f}".format(np.mean(all_auc)))
 
 
 if __name__ == "__main__":
